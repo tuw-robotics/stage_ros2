@@ -15,14 +15,20 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(stage REQUIRED)
 
-include_directories(include)
+include_directories(
+   ./include
+  ${STAGE_INCLUDE_DIRS}
+)
 
-add_library(composition_nodes SHARED
+add_library(stage_node SHARED
             src/stage_node.cpp)
-target_compile_definitions(composition_nodes
+target_compile_definitions(stage_node
   PRIVATE "STAGE_ROS2_PACKAGE_DLL")
-ament_target_dependencies(composition_nodes rclcpp rclcpp_components std_msgs sensor_msgs)
+ament_target_dependencies(stage_node rclcpp rclcpp_components 
+std_msgs sensor_msgs)
+
 
 # This package installs libraries without exporting them.
 # Export the library path to ensure that the installed libraries are available.
@@ -31,16 +37,22 @@ if(NOT WIN32)
     "${ament_cmake_package_templates_ENVIRONMENT_HOOK_LIBRARY_PATH}")
 endif()
 
-add_executable(standalone_stage src/standalone_stage.cpp)
-target_include_directories(standalone_stage PUBLIC
+add_executable(stage_ros2 src/main.cpp)
+target_include_directories(stage_ros2 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(standalone_stage PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
-target_link_libraries(standalone_stage composition_nodes)
-ament_target_dependencies(standalone_stage
-  rclcpp)
+target_compile_features(stage_ros2 PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+target_link_libraries(stage_ros2 stage_node ${STAGE_LIBRARIES})
+ament_target_dependencies(stage_ros2 rclcpp)
 
-install(TARGETS standalone_stage
+install(TARGETS
+  stage_node
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
+install(TARGETS 
+  stage_ros2
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

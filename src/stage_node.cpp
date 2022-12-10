@@ -6,15 +6,15 @@
 
 using namespace std::chrono_literals;
 
-PublisherNode::PublisherNode(rclcpp::NodeOptions options)
+StageNode::StageNode(rclcpp::NodeOptions options)
 : Node("publisher_node", options), count_(0)
 {
   publisher_ = create_publisher<std_msgs::msg::String>("topic", 10);
   timer_ = create_wall_timer(
-    500ms, std::bind(&PublisherNode::on_timer, this));
+    500ms, std::bind(&StageNode::on_timer, this));
 }
 
-void PublisherNode::on_timer()
+void StageNode::on_timer()
 {
   auto message = std_msgs::msg::String();
   message.data = "Hello, world! " + std::to_string(count_++);
@@ -24,4 +24,4 @@ void PublisherNode::on_timer()
 
 #include "rclcpp_components/register_node_macro.hpp"
 
-RCLCPP_COMPONENTS_REGISTER_NODE(PublisherNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(StageNode)
