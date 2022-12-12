@@ -12,6 +12,7 @@ class StageNode : public rclcpp::Node
 public:
   STAGE_ROS2_PACKAGE_PUBLIC StageNode(rclcpp::NodeOptions options);
 
+  void init(int argc, char** argv, bool gui, const char* fname, bool use_model_names);
 private:
   void on_timer();
   size_t count_;

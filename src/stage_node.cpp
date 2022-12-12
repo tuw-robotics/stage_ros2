@@ -1,8 +1,6 @@
 #include <chrono>
 
 #include "stage_ros2/stage_node.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
 
 using namespace std::chrono_literals;
 
@@ -20,6 +18,26 @@ void StageNode::on_timer()
   message.data = "Hello, world! " + std::to_string(count_++);
   RCLCPP_INFO(this->get_logger(), "Publisher: '%s'", message.data.c_str());
   publisher_->publish(message);
+}
+
+
+void StageNode::init(int argc, char** argv, bool gui, const char* fname, bool use_model_names){
+
+    struct stat s;
+    if(stat(fname, &s) != 0)
+    {
+        RCLCPP_FATAL(this->get_logger(),"The world file %s does not exist.", fname);
+    }
+
+    // initialize libstage
+    Stg::Init( &argc, &argv );
+
+    if(gui)
+        this->world = new Stg::WorldGui(600, 400, "Stage (ROS)");
+    else
+        this->world = new Stg::World();
+
+    this->world->Load(fname);
 }
 
 #include "rclcpp_components/register_node_macro.hpp"
