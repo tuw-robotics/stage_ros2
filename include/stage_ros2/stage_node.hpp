@@ -5,7 +5,7 @@
 #include "std_msgs/msg/string.hpp"
 #include "stage_ros2/visibility.h"
 
-//#include <stage.hh>
+#include <stage.hh>
 
 class StageNode : public rclcpp::Node
 {
@@ -19,7 +19,7 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
 
   // The main simulator object
-  //Stg::World* world;
+  Stg::World* world;
 };
 
 #endif  // STAGE_ROS2_PKG__STAGE_ROS_HPP_
