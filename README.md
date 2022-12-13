@@ -2,6 +2,7 @@
 
 
 ```
+sudo apt-get install git cmake g++ libjpeg8-dev libpng-dev libglu1-mesa-dev libltdl-dev libfltk1.3-dev
 cd YOUR_ROS2_WORKSPACE
 mkdir src
 cd src
