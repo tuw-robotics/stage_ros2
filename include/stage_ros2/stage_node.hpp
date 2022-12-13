@@ -23,7 +23,7 @@ private:
   int value_int;
   // The main simulator object
   Stg::World* world;
-    rclcpp::Service<StageNode::srv::ControlParameter>::SharedPtr srv_control_param_request_;
+    
   void init_parameter();
   void callback_update_parameter();
 };
