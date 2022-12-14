@@ -17,7 +17,8 @@ int main(int argc, char * argv[])
     }
   auto node = std::make_shared<StageNode>(rclcpp::NodeOptions());
   node->init(argc-1,argv, gui, argv[argc-1], use_model_names);
-  rclcpp::spin(node);
+  std::thread t = std::thread([&node](){rclcpp::spin(node);});
+  node->start();
   rclcpp::shutdown();
   return 0;
 }

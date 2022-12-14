@@ -13,7 +13,7 @@ public:
   STAGE_ROS2_PACKAGE_PUBLIC StageNode(rclcpp::NodeOptions options);
 
   void init(int argc, char **argv, bool gui, const char *fname, bool use_model_names);
-
+  void start();
 private:
   void on_timer();
   size_t count_;
@@ -44,6 +44,8 @@ private:
   }
     
   static void ghfunc(Stg::Model* mod, StageNode* node);
+
+  std::shared_ptr<std::thread> thread_stage_; 
 };
 
 #endif // STAGE_ROS2_PKG__STAGE_ROS_HPP_

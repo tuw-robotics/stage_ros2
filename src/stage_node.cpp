@@ -4,6 +4,7 @@
 
 #include "stage_ros2/stage_node.hpp"
 #include <sys/stat.h>
+#include <functional>
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -81,6 +82,13 @@ void StageNode::init(int argc, char** argv, bool gui, const char* fname, bool us
 
     this->stage_->AddUpdateCallback((Stg::world_callback_t)s_update, this);
     this->stage_->ForEachDescendant((Stg::model_callback_t)ghfunc, this);
+}
+
+void StageNode::start(){
+
+    this->stage_->Start();
+    Stg::World::Run();
+
 }
 
 void StageNode::ghfunc(Stg::Model* mod, StageNode* node)
