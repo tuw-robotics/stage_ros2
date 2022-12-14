@@ -12,7 +12,7 @@ using std::placeholders::_2;
 using namespace std::chrono_literals;
 
 StageNode::StageNode(rclcpp::NodeOptions options)
-: Node("publisher_node", options), count_(0)
+: Node("stage_ros2", options), count_(0)
 {
   init_parameter();
   publisher_ = create_publisher<std_msgs::msg::String>("topic", 10);
@@ -34,6 +34,8 @@ void StageNode::callback_update_parameter()
     double base_watchdog_timeout_sec;
     this->get_parameter("world_file", world_file_);
     this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
+    this->get_parameter("enable_gui", enable_gui_);
+    this->get_parameter("use_model_names_", use_model_names_);
     this->base_watchdog_timeout_ = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
 
     if(!std::filesystem::exists(world_file_)){
@@ -47,6 +49,8 @@ void StageNode::init_parameter() {
     
     this->declare_parameter<double>("value_double", value_double);
     this->declare_parameter<double>("base_watchdog_timeout", 0.2);
+    this->declare_parameter<bool>("enable_gui", true);
+    this->declare_parameter<bool>("use_model_names_", false);
     this->declare_parameter<std::string>("world_file", "cave.world");
     
     /*
@@ -63,22 +67,17 @@ void StageNode::init_parameter() {
     timer_ = this->create_wall_timer(1000ms, std::bind(&StageNode::callback_update_parameter, this));
 }
 
-void StageNode::init(int argc, char** argv, bool gui, const char* fname, bool use_model_names){
-
-    std::string file = "/home/markus/projects/ros2/mobile_robotics/ws00/src/stage_ros2/world/cave.world";
+void StageNode::init(int argc, char** argv){
 
     // initialize libstage
     Stg::Init( &argc, &argv );
 
-    if(gui)
+    if(enable_gui_)
         this->stage_ = new Stg::WorldGui(600, 400, "Stage (ROS)");
     else
         this->stage_ = new Stg::World();
 
-    this->stage_->Load(file.c_str());
-
-
-
+    this->stage_->Load(world_file_.c_str());
 
     this->stage_->AddUpdateCallback((Stg::world_callback_t)s_update, this);
     this->stage_->ForEachDescendant((Stg::model_callback_t)ghfunc, this);
@@ -91,19 +90,27 @@ void StageNode::start(){
 
 }
 
-void StageNode::ghfunc(Stg::Model* mod, StageNode* node)
+int StageNode::ghfunc(Stg::Model* mod, StageNode* node)
 {
   //printf( "inspecting %s, parent\n", mod->Token() );
-
+  return 0;
 }
 
-void StageNode::callback_world()
+int StageNode::s_update(Stg::World *world, StageNode *node)
+{
+  return node->callback_world(world);
+}
+
+int StageNode::callback_world(Stg::World *world)
 {
   if( ! rclcpp::ok() ) {
     RCLCPP_INFO(this->get_logger(), "rclcpp::ok() is false. Quitting." );
-    this->stage_->QuitAll();
-    return;
+    world->QuitAll();
+    return 1;
   }
+  this->sim_time_ = rclcpp::Time(world->SimTimeNow() * 1e3);
+  
+  return 0;
 }
 #include "rclcpp_components/register_node_macro.hpp"
 

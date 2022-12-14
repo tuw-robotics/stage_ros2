@@ -13,8 +13,10 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(stage REQUIRED)
 
 include_directories(
@@ -27,7 +29,7 @@ add_library(stage_node SHARED
 target_compile_definitions(stage_node
   PRIVATE "STAGE_ROS2_PACKAGE_DLL")
 ament_target_dependencies(stage_node rclcpp rclcpp_components 
-std_msgs sensor_msgs)
+sensor_msgs geometry_msgs nav_msgs std_msgs)
 
 
 # This package installs libraries without exporting them.
