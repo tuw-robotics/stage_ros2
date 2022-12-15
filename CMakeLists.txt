@@ -18,6 +18,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(stage REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 include_directories(
    ./include
@@ -29,7 +30,7 @@ add_library(stage_node SHARED
 target_compile_definitions(stage_node
   PRIVATE "STAGE_ROS2_PACKAGE_DLL")
 ament_target_dependencies(stage_node rclcpp rclcpp_components 
-sensor_msgs geometry_msgs nav_msgs std_msgs)
+sensor_msgs geometry_msgs nav_msgs std_msgs tf2_ros)
 
 
 # This package installs libraries without exporting them.
