@@ -1,6 +1,8 @@
 
 #include "stage_ros2/stage_node.hpp"
 
+#include <filesystem>
+
 // helper functions
 geometry_msgs::msg::TransformStamped create_transform_stamped(const tf2::Transform &in, const rclcpp::Time &timestamp, const std::string &frame_id, const std::string &child_frame_id)
 {
@@ -107,7 +109,7 @@ StageNode::ghfunc(Stg::Model* mod, StageNode* node)
 bool
 StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr request, std_srvs::srv::Empty::Response::SharedPtr response)
 {
-  RCLCPP_INFO(this->n_->get_logger(), "Resetting stage!");
+  RCLCPP_INFO(this->get_logger(), "Resetting stage!");
   for (size_t r = 0; r < this->positionmodels.size(); r++) {
     this->positionmodels[r]->SetPose(this->initial_poses[r]);
     this->positionmodels[r]->SetStall(false);
@@ -127,39 +129,60 @@ StageNode::cmdvelReceived(int idx, const geometry_msgs::msg::Twist::SharedPtr ms
     this->base_last_cmd = this->sim_time;
 }
 
-StageNode::StageNode(int argc, char** argv, bool gui, const char* fname, bool use_model_names)
-: base_watchdog_timeout(0,0)
+StageNode::StageNode(rclcpp::NodeOptions options)
+: Node("stage_ros2", options), base_watchdog_timeout(0,0)
 {
-    this->use_model_names = use_model_names;
+  tf_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+    
+  auto param_desc_enable_gui = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_enable_gui.description = "Enable GUI!";
+  this->declare_parameter<bool>("enable_gui", true, param_desc_enable_gui);
+  auto param_desc_model_names = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_model_names.description = "USE model names!";
+  this->declare_parameter<bool>("use_model_names", false, param_desc_model_names);
+  
+  auto param_desc_watchdog_timeout = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_watchdog_timeout.description = "USE model names!";
+  this->declare_parameter<double>("base_watchdog_timeout", 0.2, param_desc_watchdog_timeout);
+
+  auto param_desc_is_depth_canonical = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_is_depth_canonical.description = "USE model names!";
+  this->declare_parameter<bool>("is_depth_canonical", true, param_desc_is_depth_canonical);
+
+  auto param_desc_world_file = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_world_file.description = "USE model names!";
+  this->declare_parameter<std::string>("world_file", "cave.world", param_desc_world_file);
+}
+
+void StageNode::init(int argc, char** argv)
+{
+    double base_watchdog_timeout_sec {0.2};
+    this->get_parameter("enable_gui", this->enable_gui_);
+    this->get_parameter("use_model_names", this->use_model_names);
+    this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
+    this->base_watchdog_timeout = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
+    this->get_parameter("is_depth_canonical", this->isDepthCanonical);
+    this->get_parameter("world_file", this->world_file_);
+
     this->sim_time = rclcpp::Time(0, 0);
     this->base_last_cmd = rclcpp::Time(0, 0);
-    double t;
-    rclcpp::Node::SharedPtr localn = rclcpp::Node::make_shared("_");
-    if(!localn->get_parameter("base_watchdog_timeout", t))
-        t = 0.2;
-    this->base_watchdog_timeout = rclcpp::Duration::from_seconds(t);
 
-    if(!localn->get_parameter("is_depth_canonical", isDepthCanonical))
-        isDepthCanonical = true;
 
-    // We'll check the existence of the world file, because libstage doesn't
-    // expose its failure to open it.  Could go further with checks (e.g., is
-    // it readable by this user).
-    struct stat s;
-    if(stat(fname, &s) != 0)
+    if (!std::filesystem::exists(world_file_))
     {
-        RCLCPP_FATAL(this->n_->get_logger(),"The world file %s does not exist.", fname);
+        RCLCPP_FATAL(this->get_logger(), "The world file %s does not exist.", this->world_file_.c_str());
     }
 
     // initialize libstage
     Stg::Init( &argc, &argv );
 
-    if(gui)
+    if (this->enable_gui_)
         this->world = new Stg::WorldGui(600, 400, "Stage (ROS)");
     else
         this->world = new Stg::World();
 
-    this->world->Load(fname);
+    this->world->Load(world_file_.c_str());
+
 
     // todo: reverse the order of these next lines? try it .
 
@@ -179,7 +202,7 @@ StageNode::StageNode(int argc, char** argv, bool gui, const char* fname, bool us
 int
 StageNode::SubscribeModels()
 {
-    n_->set_parameter(rclcpp::Parameter("use_sim_time", true));
+    this->set_parameter(rclcpp::Parameter("use_sim_time", true));
 
     for (size_t r = 0; r < this->positionmodels.size(); r++)
     {
@@ -187,7 +210,7 @@ StageNode::SubscribeModels()
         new_robot->positionmodel = this->positionmodels[r];
         new_robot->positionmodel->Subscribe();
 
-	RCLCPP_INFO(this->n_->get_logger(), "Subscribed to Stage position model \"%s\"", this->positionmodels[r]->Token() ); 
+	RCLCPP_INFO(this->get_logger(), "Subscribed to Stage position model \"%s\"", this->positionmodels[r]->Token() ); 
 		      
         for (size_t s = 0; s < this->lasermodels.size(); s++)
         {
@@ -195,7 +218,7 @@ StageNode::SubscribeModels()
             {
                 new_robot->lasermodels.push_back(this->lasermodels[s]);
                 this->lasermodels[s]->Subscribe();
-	      RCLCPP_INFO(this->n_->get_logger(), "subscribed to Stage ranger \"%s\"", this->lasermodels[s]->Token() ); 
+	      RCLCPP_INFO(this->get_logger(), "subscribed to Stage ranger \"%s\"", this->lasermodels[s]->Token() ); 
             }
         }
 
@@ -206,26 +229,26 @@ StageNode::SubscribeModels()
                 new_robot->cameramodels.push_back(this->cameramodels[s]);
                 this->cameramodels[s]->Subscribe();
 
-		RCLCPP_INFO(this->n_->get_logger(), "subscribed to Stage camera model \"%s\"", this->cameramodels[s]->Token() ); 
+		RCLCPP_INFO(this->get_logger(), "subscribed to Stage camera model \"%s\"", this->cameramodels[s]->Token() ); 
             }
         }
 
 	// TODO - print the topic names nicely as well
-        RCLCPP_INFO(this->n_->get_logger(), "Robot %s provided %lu rangers and %lu cameras",
+        RCLCPP_INFO(this->get_logger(), "Robot %s provided %lu rangers and %lu cameras",
 		 new_robot->positionmodel->Token(),
 		 new_robot->lasermodels.size(),
 		 new_robot->cameramodels.size() );
 
-        new_robot->odom_pub = n_->create_publisher<nav_msgs::msg::Odometry>(mapName(ODOM, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
-        new_robot->ground_truth_pub = n_->create_publisher<nav_msgs::msg::Odometry>(mapName(BASE_POSE_GROUND_TRUTH, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
-        new_robot->cmdvel_sub = n_->create_subscription<geometry_msgs::msg::Twist>(mapName(CMD_VEL, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10, [this, r](const geometry_msgs::msg::Twist::SharedPtr msg) {this->cmdvelReceived(r, msg);});
+        new_robot->odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(ODOM, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
+        new_robot->ground_truth_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(BASE_POSE_GROUND_TRUTH, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
+        new_robot->cmdvel_sub = this->create_subscription<geometry_msgs::msg::Twist>(mapName(CMD_VEL, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10, [this, r](const geometry_msgs::msg::Twist::SharedPtr msg) {this->cmdvelReceived(r, msg);});
 
         for (size_t s = 0;  s < new_robot->lasermodels.size(); ++s)
         {
             if (new_robot->lasermodels.size() == 1)
-                new_robot->laser_pubs.push_back(n_->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
+                new_robot->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
             else
-                new_robot->laser_pubs.push_back(n_->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, r, s, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
+                new_robot->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, r, s, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
 
         }
 
@@ -233,24 +256,24 @@ StageNode::SubscribeModels()
         {
             if (new_robot->cameramodels.size() == 1)
             {
-                new_robot->image_pubs.push_back(n_->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
-                new_robot->depth_pubs.push_back(n_->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
-                new_robot->camera_pubs.push_back(n_->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
+                new_robot->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
+                new_robot->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
+                new_robot->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
             }
             else
             {
-                new_robot->image_pubs.push_back(n_->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, r, s, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
-                new_robot->depth_pubs.push_back(n_->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, r, s, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
-                new_robot->camera_pubs.push_back(n_->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, r, s, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
+                new_robot->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, r, s, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
+                new_robot->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, r, s, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
+                new_robot->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, r, s, static_cast<Stg::Model*>(new_robot->positionmodel)), 10));
             }
         }
 
         this->robotmodels_.push_back(new_robot);
     }
-    clock_pub_ = n_->create_publisher<rosgraph_msgs::msg::Clock>("/clock", 10);
+    clock_pub_ = this->create_publisher<rosgraph_msgs::msg::Clock>("/clock", 10);
 
     // advertising reset service
-    reset_srv_ = n_->create_service<std_srvs::srv::Empty>("reset_positions", [this](const std_srvs::srv::Empty::Request::SharedPtr request, std_srvs::srv::Empty::Response::SharedPtr response){this->cb_reset_srv(request, response);});
+    reset_srv_ = this->create_service<std_srvs::srv::Empty>("reset_positions", [this](const std_srvs::srv::Empty::Request::SharedPtr request, std_srvs::srv::Empty::Response::SharedPtr response){this->cb_reset_srv(request, response);});
 
     return(0);
 }
@@ -271,7 +294,7 @@ void
 StageNode::WorldCallback()
 {
   if( ! rclcpp::ok() ) {
-    RCLCPP_INFO(this->n_->get_logger(), "rclcpp::ok() is false. Quitting." );
+    RCLCPP_INFO(this->get_logger(), "rclcpp::ok() is false. Quitting." );
     this->world->QuitAll();
     return;
   }
@@ -283,7 +306,7 @@ StageNode::WorldCallback()
     // value in parts of ROS, #4027.
     if(int(this->sim_time.nanoseconds()) == 0)
     {
-        RCLCPP_DEBUG(this->n_->get_logger(),"Skipping initial simulation step, to avoid publishing clock==0");
+        RCLCPP_DEBUG(this->get_logger(),"Skipping initial simulation step, to avoid publishing clock==0");
         return;
     }
 
@@ -307,7 +330,7 @@ StageNode::WorldCallback()
             const std::vector<Stg::ModelRanger::Sensor>& sensors = lasermodel->GetSensors();
 
             if( sensors.size() > 1 )
-                RCLCPP_WARN(this->n_->get_logger(), "ROS Stage currently supports rangers with 1 sensor only." );
+                RCLCPP_WARN(this->get_logger(), "ROS Stage currently supports rangers with 1 sensor only." );
 
             // for now we access only the zeroth sensor of the ranger - good
             // enough for most laser models that have a single beam origin
@@ -348,17 +371,17 @@ StageNode::WorldCallback()
             tf2::Transform txLaser =  tf2::Transform(laserQ, tf2::Vector3(lp.x, lp.y, robotmodel->positionmodel->GetGeom().size.z + lp.z));
 
             if (robotmodel->lasermodels.size() > 1)
-                tf.sendTransform(create_transform_stamped(txLaser, sim_time,
+                tf_->sendTransform(create_transform_stamped(txLaser, sim_time,
                                                       mapName("base_link", r, static_cast<Stg::Model*>(robotmodel->positionmodel)),
                                                       mapName("base_laser_link", r, s, static_cast<Stg::Model*>(robotmodel->positionmodel))));
             else
-                tf.sendTransform(create_transform_stamped(txLaser, sim_time,
+                tf_->sendTransform(create_transform_stamped(txLaser, sim_time,
                                                       mapName("base_link", r, static_cast<Stg::Model*>(robotmodel->positionmodel)),
                                                       mapName("base_laser_link", r, static_cast<Stg::Model*>(robotmodel->positionmodel))));
         }
 
         //the position of the robot
-        tf.sendTransform(create_transform_stamped(tf2::Transform::getIdentity(),
+        tf_->sendTransform(create_transform_stamped(tf2::Transform::getIdentity(),
                                               sim_time,
                                               mapName("base_footprint", r, static_cast<Stg::Model*>(robotmodel->positionmodel)),
                                               mapName("base_link", r, static_cast<Stg::Model*>(robotmodel->positionmodel))));
@@ -389,7 +412,7 @@ StageNode::WorldCallback()
             odom_msg.pose.pose.orientation.z,
             odom_msg.pose.pose.orientation.w);
         tf2::Transform txOdom(odomQ, tf2::Vector3(odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y, 0.0));
-        tf.sendTransform(create_transform_stamped(txOdom, sim_time,
+        tf_->sendTransform(create_transform_stamped(txOdom, sim_time,
                                               mapName("odom", r, static_cast<Stg::Model*>(robotmodel->positionmodel)),
                                               mapName("base_footprint", r, static_cast<Stg::Model*>(robotmodel->positionmodel))));
 
@@ -544,11 +567,11 @@ StageNode::WorldCallback()
                 tf2::Transform tr =  tf2::Transform(Q, tf2::Vector3(lp.x, lp.y, robotmodel->positionmodel->GetGeom().size.z+lp.z));
 
                 if (robotmodel->cameramodels.size() > 1)
-                    tf.sendTransform(create_transform_stamped(tr, sim_time,
+                    tf_->sendTransform(create_transform_stamped(tr, sim_time,
                                                           mapName("base_link", r, static_cast<Stg::Model*>(robotmodel->positionmodel)),
                                                           mapName("camera", r, s, static_cast<Stg::Model*>(robotmodel->positionmodel))));
                 else
-                    tf.sendTransform(create_transform_stamped(tr, sim_time,
+                    tf_->sendTransform(create_transform_stamped(tr, sim_time,
                                                           mapName("base_link", r, static_cast<Stg::Model*>(robotmodel->positionmodel)),
                                                           mapName("camera", r, static_cast<Stg::Model*>(robotmodel->positionmodel))));
 

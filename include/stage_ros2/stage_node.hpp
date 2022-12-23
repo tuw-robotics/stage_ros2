@@ -25,6 +25,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
+#include "stage_ros2/visibility.h"
 
 #include <std_srvs/srv/empty.hpp>
 
@@ -43,11 +44,10 @@
 
 
 // Our node
-class StageNode
+class StageNode : public rclcpp::Node
 {
 public:
-    // roscpp-related bookkeeping
-    rclcpp::Node::SharedPtr n_ = rclcpp::Node::make_shared("stage_ros");
+  STAGE_ROS2_PACKAGE_PUBLIC StageNode(rclcpp::NodeOptions options);
 
 private:
     // A mutex to lock access to fields that are used in message callbacks
@@ -88,6 +88,8 @@ private:
 
     bool isDepthCanonical;
     bool use_model_names;
+    bool enable_gui_;
+    std::string world_file_;
 
     // A helper function that is executed for each stage model.  We use it
     // to search for models of interest.
@@ -106,7 +108,7 @@ private:
     const char *mapName(const char *name, size_t robotID, Stg::Model* mod) const;
     const char *mapName(const char *name, size_t robotID, size_t deviceID, Stg::Model* mod) const;
 
-    tf2_ros::TransformBroadcaster tf{n_};
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_;
 
     // Last time that we received a velocity command
     rclcpp::Time base_last_cmd;
@@ -121,10 +123,10 @@ private:
     std::vector<Stg::Pose> base_last_globalpos;
 
 public:
+    ~StageNode();
     // Constructor; stage itself needs argc/argv.  fname is the .world file
     // that stage should load.
-    StageNode(int argc, char** argv, bool gui, const char* fname, bool use_model_names);
-    ~StageNode();
+    void init(int argc, char** argv);
 
     // Subscribe to models of interest.  Currently, we find and subscribe
     // to the first 'laser' model and the first 'position' model.  Returns
