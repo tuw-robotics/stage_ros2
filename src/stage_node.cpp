@@ -1,7 +1,19 @@
 
 #include "stage_ros2/stage_node.hpp"
+#include "tf2/transform_datatypes.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+
 
 #include <filesystem>
+
+#define IMAGE "image"
+#define DEPTH "depth"
+#define CAMERA_INFO "camera_info"
+#define ODOM "odom"
+#define BASE_SCAN "base_scan"
+#define BASE_POSE_GROUND_TRUTH "base_pose_ground_truth"
+#define CMD_VEL "cmd_vel"
+
 
 // helper functions
 geometry_msgs::msg::TransformStamped create_transform_stamped(const tf2::Transform &in, const rclcpp::Time &timestamp, const std::string &frame_id, const std::string &child_frame_id)
@@ -84,8 +96,7 @@ StageNode::mapName(const char *name, size_t robotID, size_t deviceID, Stg::Model
     }
 }
 
-void
-StageNode::ghfunc(Stg::Model* mod, StageNode* node)
+int StageNode::ghfunc(Stg::Model* mod, StageNode* node)
 {
   //printf( "inspecting %s, parent\n", mod->Token() );
 
@@ -101,13 +112,19 @@ StageNode::ghfunc(Stg::Model* mod, StageNode* node)
   if (dynamic_cast<Stg::ModelCamera *>(mod)) {
      node->cameramodels.push_back(dynamic_cast<Stg::ModelCamera *>(mod));
   }
+  return 0;
 }
 
 
+int StageNode::s_update(Stg::World* world, StageNode* node)
+{
+    // We return false to indicate that we want to be called again (an
+    // odd convention, but that's the way that Stage works).
+    return node->WorldCallback(world);;
+}
 
 
-bool
-StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr request, std_srvs::srv::Empty::Response::SharedPtr response)
+bool StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std_srvs::srv::Empty::Response::SharedPtr)
 {
   RCLCPP_INFO(this->get_logger(), "Resetting stage!");
   for (size_t r = 0; r < this->positionmodels.size(); r++) {
@@ -290,13 +307,12 @@ StageNode::UpdateWorld()
     return this->world->UpdateAll();
 }
 
-void
-StageNode::WorldCallback()
+int StageNode::WorldCallback(Stg::World *world)
 {
   if( ! rclcpp::ok() ) {
     RCLCPP_INFO(this->get_logger(), "rclcpp::ok() is false. Quitting." );
     this->world->QuitAll();
-    return;
+    return 1;
   }
   
     boost::mutex::scoped_lock lock(msg_lock);
@@ -307,7 +323,7 @@ StageNode::WorldCallback()
     if(int(this->sim_time.nanoseconds()) == 0)
     {
         RCLCPP_DEBUG(this->get_logger(),"Skipping initial simulation step, to avoid publishing clock==0");
-        return;
+        return 0;
     }
 
     // TODO make this only affect one robot if necessary
@@ -626,4 +642,5 @@ StageNode::WorldCallback()
     rosgraph_msgs::msg::Clock clock_msg;
     clock_msg.clock = sim_time;
     this->clock_pub_->publish(clock_msg);
+  return 0;
 }

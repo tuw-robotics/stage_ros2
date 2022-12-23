@@ -27,21 +27,8 @@
 #include <rosgraph_msgs/msg/clock.hpp>
 #include "stage_ros2/visibility.h"
 
-#include <std_srvs/srv/empty.hpp>
-
-#include "tf2/transform_datatypes.h"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include "tf2_ros/transform_broadcaster.h"
-
-#define USAGE "stageros <worldfile>"
-#define IMAGE "image"
-#define DEPTH "depth"
-#define CAMERA_INFO "camera_info"
-#define ODOM "odom"
-#define BASE_SCAN "base_scan"
-#define BASE_POSE_GROUND_TRUTH "base_pose_ground_truth"
-#define CMD_VEL "cmd_vel"
-
+#include <std_srvs/srv/empty.hpp>
 
 // Our node
 class StageNode : public rclcpp::Node
@@ -93,15 +80,9 @@ private:
 
     // A helper function that is executed for each stage model.  We use it
     // to search for models of interest.
-    static void ghfunc(Stg::Model* mod, StageNode* node);
+    static int ghfunc(Stg::Model* mod, StageNode* node);
 
-    static bool s_update(Stg::World* world, StageNode* node)
-    {
-        node->WorldCallback();
-        // We return false to indicate that we want to be called again (an
-        // odd convention, but that's the way that Stage works).
-        return false;
-    }
+    static int s_update(Stg::World* world, StageNode* node);
 
     // Appends the given robot ID to the given message name.  If omitRobotID
     // is true, an unaltered copy of the name is returned.
@@ -134,7 +115,7 @@ public:
     int SubscribeModels();
 
     // Our callback
-    void WorldCallback();
+    int WorldCallback(Stg::World *world);
     
     // Do one update of the world.  May pause if the next update time
     // has not yet arrived.
