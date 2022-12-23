@@ -1,7 +1,5 @@
 
-#include "stage_ros2/stage_node.hpp"
-#include "tf2/transform_datatypes.h"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include <stage_ros2/stage_node.hpp>
 
 
 #include <filesystem>
@@ -15,33 +13,40 @@
 #define CMD_VEL "cmd_vel"
 
 
-// helper functions
-geometry_msgs::msg::TransformStamped create_transform_stamped(const tf2::Transform &in, const rclcpp::Time &timestamp, const std::string &frame_id, const std::string &child_frame_id)
+
+StageNode::StageNode(rclcpp::NodeOptions options)
+: Node("stage_ros2", options), base_watchdog_timeout(0,0)
 {
-    geometry_msgs::msg::TransformStamped out;
-    out.header.stamp = timestamp;
-    out.header.frame_id = frame_id;
-    out.child_frame_id = child_frame_id;
-    out.transform.translation.x = in.getOrigin().getX();
-    out.transform.translation.y = in.getOrigin().getY();
-    out.transform.translation.z = in.getOrigin().getZ();
-    out.transform.rotation.w = in.getRotation().getW();
-    out.transform.rotation.x = in.getRotation().getX();
-    out.transform.rotation.y = in.getRotation().getY();
-    out.transform.rotation.z = in.getRotation().getZ();
-    return out;
+  tf_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+    
+  auto param_desc_enable_gui = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_enable_gui.description = "Enable GUI!";
+  this->declare_parameter<bool>("enable_gui", true, param_desc_enable_gui);
+  auto param_desc_model_names = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_model_names.description = "USE model names!";
+  this->declare_parameter<bool>("use_model_names", false, param_desc_model_names);
+  
+  auto param_desc_watchdog_timeout = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_watchdog_timeout.description = "USE model names!";
+  this->declare_parameter<double>("base_watchdog_timeout", 0.2, param_desc_watchdog_timeout);
+
+  auto param_desc_is_depth_canonical = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_is_depth_canonical.description = "USE model names!";
+  this->declare_parameter<bool>("is_depth_canonical", true, param_desc_is_depth_canonical);
+
+  auto param_desc_world_file = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_world_file.description = "USE model names!";
+  this->declare_parameter<std::string>("world_file", "cave.world", param_desc_world_file);
 }
 
-auto createQuaternionMsgFromYaw(double yaw)
-{
-  tf2::Quaternion q;
-  q.setRPY(0, 0, yaw);
-  return tf2::toMsg(q);
+StageNode::~StageNode()
+{    
+    for (std::vector<StageRobot const*>::iterator r = this->robotmodels_.begin(); r != this->robotmodels_.end(); ++r)
+        delete *r;
 }
 
 // since stageros is single-threaded, this is OK. revisit if that changes!
-const char *
-StageNode::mapName(const char *name, size_t robotID, Stg::Model* mod) const
+const char *StageNode::mapName(const char *name, size_t robotID, Stg::Model* mod) const
 {
     //ROS_INFO("Robot %lu: Device %s", robotID, name);
     bool umn = this->use_model_names;
@@ -66,8 +71,7 @@ StageNode::mapName(const char *name, size_t robotID, Stg::Model* mod) const
         return name;
 }
 
-const char *
-StageNode::mapName(const char *name, size_t robotID, size_t deviceID, Stg::Model* mod) const
+const char *StageNode::mapName(const char *name, size_t robotID, size_t deviceID, Stg::Model* mod) const
 {
     //ROS_INFO("Robot %lu: Device %s:%lu", robotID, name, deviceID);
     bool umn = this->use_model_names;
@@ -116,11 +120,11 @@ int StageNode::ghfunc(Stg::Model* mod, StageNode* node)
 }
 
 
-int StageNode::s_update(Stg::World* world, StageNode* node)
+int StageNode::s_update(Stg::World*, StageNode* node)
 {
     // We return false to indicate that we want to be called again (an
     // odd convention, but that's the way that Stage works).
-    return node->WorldCallback(world);;
+    return node->WorldCallback();
 }
 
 
@@ -136,44 +140,18 @@ bool StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std
 
 
 
-void
-StageNode::cmdvelReceived(int idx, const geometry_msgs::msg::Twist::SharedPtr msg)
+void StageNode::cmdvelReceived(int idx, const geometry_msgs::msg::Twist::SharedPtr msg)
 {
-    boost::mutex::scoped_lock lock(msg_lock);
+    std::scoped_lock lock(msg_lock);
     this->positionmodels[idx]->SetSpeed(msg->linear.x,
                                         msg->linear.y,
                                         msg->angular.z);
     this->base_last_cmd = this->sim_time;
 }
 
-StageNode::StageNode(rclcpp::NodeOptions options)
-: Node("stage_ros2", options), base_watchdog_timeout(0,0)
-{
-  tf_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
-    
-  auto param_desc_enable_gui = rcl_interfaces::msg::ParameterDescriptor{};
-  param_desc_enable_gui.description = "Enable GUI!";
-  this->declare_parameter<bool>("enable_gui", true, param_desc_enable_gui);
-  auto param_desc_model_names = rcl_interfaces::msg::ParameterDescriptor{};
-  param_desc_model_names.description = "USE model names!";
-  this->declare_parameter<bool>("use_model_names", false, param_desc_model_names);
-  
-  auto param_desc_watchdog_timeout = rcl_interfaces::msg::ParameterDescriptor{};
-  param_desc_watchdog_timeout.description = "USE model names!";
-  this->declare_parameter<double>("base_watchdog_timeout", 0.2, param_desc_watchdog_timeout);
-
-  auto param_desc_is_depth_canonical = rcl_interfaces::msg::ParameterDescriptor{};
-  param_desc_is_depth_canonical.description = "USE model names!";
-  this->declare_parameter<bool>("is_depth_canonical", true, param_desc_is_depth_canonical);
-
-  auto param_desc_world_file = rcl_interfaces::msg::ParameterDescriptor{};
-  param_desc_world_file.description = "USE model names!";
-  this->declare_parameter<std::string>("world_file", "cave.world", param_desc_world_file);
-}
-
 void StageNode::init(int argc, char** argv)
 {
-    double base_watchdog_timeout_sec {0.2};
+    double base_watchdog_timeout_sec {0.5};
     this->get_parameter("enable_gui", this->enable_gui_);
     this->get_parameter("use_model_names", this->use_model_names);
     this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
@@ -216,8 +194,7 @@ void StageNode::init(int argc, char** argv)
 //
 // Eventually, we should provide a general way to map stage models onto ROS
 // topics, similar to Player .cfg files.
-int
-StageNode::SubscribeModels()
+int StageNode::SubscribeModels()
 {
     this->set_parameter(rclcpp::Parameter("use_sim_time", true));
 
@@ -295,19 +272,13 @@ StageNode::SubscribeModels()
     return(0);
 }
 
-StageNode::~StageNode()
-{    
-    for (std::vector<StageRobot const*>::iterator r = this->robotmodels_.begin(); r != this->robotmodels_.end(); ++r)
-        delete *r;
-}
-
 bool
 StageNode::UpdateWorld()
 {
     return this->world->UpdateAll();
 }
 
-int StageNode::WorldCallback(Stg::World *world)
+int StageNode::WorldCallback()
 {
   if( ! rclcpp::ok() ) {
     RCLCPP_INFO(this->get_logger(), "rclcpp::ok() is false. Quitting." );
@@ -315,7 +286,7 @@ int StageNode::WorldCallback(Stg::World *world)
     return 1;
   }
   
-    boost::mutex::scoped_lock lock(msg_lock);
+    std::scoped_lock lock(msg_lock);
 
     this->sim_time = rclcpp::Time(world->SimTimeNow() * 1e3);
     // We're not allowed to publish clock==0, because it used as a special
@@ -643,4 +614,29 @@ int StageNode::WorldCallback(Stg::World *world)
     clock_msg.clock = sim_time;
     this->clock_pub_->publish(clock_msg);
   return 0;
+}
+
+
+// helper functions
+geometry_msgs::msg::TransformStamped StageNode::create_transform_stamped(const tf2::Transform &in, const rclcpp::Time &timestamp, const std::string &frame_id, const std::string &child_frame_id)
+{
+    geometry_msgs::msg::TransformStamped out;
+    out.header.stamp = timestamp;
+    out.header.frame_id = frame_id;
+    out.child_frame_id = child_frame_id;
+    out.transform.translation.x = in.getOrigin().getX();
+    out.transform.translation.y = in.getOrigin().getY();
+    out.transform.translation.z = in.getOrigin().getZ();
+    out.transform.rotation.w = in.getRotation().getW();
+    out.transform.rotation.x = in.getRotation().getX();
+    out.transform.rotation.y = in.getRotation().getY();
+    out.transform.rotation.z = in.getRotation().getZ();
+    return out;
+}
+
+geometry_msgs::msg::Quaternion StageNode::createQuaternionMsgFromYaw(double yaw)
+{
+  tf2::Quaternion q;
+  q.setRPY(0, 0, yaw);
+  return tf2::toMsg(q);
 }

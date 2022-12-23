@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <signal.h>
+#include <mutex>
 
 
 // libstage
@@ -15,20 +16,20 @@
 
 
 // roscpp
-#include "rclcpp/rclcpp.hpp"
-#include <boost/thread/mutex.hpp>
-#include <thread>
-#include "sensor_msgs/msg/laser_scan.hpp"
+#include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/empty.hpp>
+#include <geometry_msgs/msg/twist.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <geometry_msgs/msg/twist.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
-#include "stage_ros2/visibility.h"
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include "tf2_ros/transform_broadcaster.h"
-#include <std_srvs/srv/empty.hpp>
+#include "stage_ros2/visibility.h"
 
 // Our node
 class StageNode : public rclcpp::Node
@@ -38,7 +39,7 @@ public:
 
 private:
     // A mutex to lock access to fields that are used in message callbacks
-    boost::mutex msg_lock;
+    std::mutex msg_lock;
 
     // The models that we're interested in
     std::vector<Stg::ModelCamera *> cameramodels;
@@ -103,6 +104,9 @@ private:
     // Last published global pose of each robot
     std::vector<Stg::Pose> base_last_globalpos;
 
+    static geometry_msgs::msg::TransformStamped create_transform_stamped(const tf2::Transform &in, const rclcpp::Time &timestamp, const std::string &frame_id, const std::string &child_frame_id);
+
+    static geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
 public:
     ~StageNode();
     // Constructor; stage itself needs argc/argv.  fname is the .world file
@@ -115,7 +119,7 @@ public:
     int SubscribeModels();
 
     // Our callback
-    int WorldCallback(Stg::World *world);
+    int WorldCallback();
     
     // Do one update of the world.  May pause if the next update time
     // has not yet arrived.
@@ -125,7 +129,7 @@ public:
     void cmdvelReceived(int idx, const geometry_msgs::msg::Twist::SharedPtr msg);
 
     // Service callback for soft reset
-    bool cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr request, std_srvs::srv::Empty::Response::SharedPtr response);
+    bool cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std_srvs::srv::Empty::Response::SharedPtr);
 
     // The main simulator object
     Stg::World* world;
