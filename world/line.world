@@ -1,8 +1,7 @@
 # line.world 
 # Authors: Markus Bader
 
-include "include/hokuyolaser.inc"
-include "include/pioneer2dx.inc"
+include "include/robots.inc"
 
 # set the resolution of the underlying raytrace model in meters
 resolution 0.02
@@ -46,6 +45,7 @@ floorplan
   size [16.000 16.000 0.800]
   pose [0 0 0 0]
   bitmap "bitmaps/line.png"
+  gui_move 0
 )
 
 # define a block

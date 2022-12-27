@@ -1,7 +1,7 @@
 
 #include <stage_ros2/stage_node.hpp>
 
-
+#include <chrono>
 #include <filesystem>
 
 #define IMAGE "image"
@@ -18,7 +18,18 @@ StageNode::StageNode(rclcpp::NodeOptions options)
 : Node("stage_ros2", options), base_watchdog_timeout(0,0)
 {
   tf_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
-    
+  init_parameter();
+}
+
+StageNode::~StageNode()
+{    
+    for (std::vector<StageRobot const*>::iterator r = this->robotmodels_.begin(); r != this->robotmodels_.end(); ++r)
+        delete *r;
+}
+
+void StageNode::init_parameter()
+{
+  this->set_parameter(rclcpp::Parameter("use_sim_time", true));
   auto param_desc_enable_gui = rcl_interfaces::msg::ParameterDescriptor{};
   param_desc_enable_gui.description = "Enable GUI!";
   this->declare_parameter<bool>("enable_gui", true, param_desc_enable_gui);
@@ -27,7 +38,7 @@ StageNode::StageNode(rclcpp::NodeOptions options)
   this->declare_parameter<bool>("use_model_names", false, param_desc_model_names);
   
   auto param_desc_watchdog_timeout = rcl_interfaces::msg::ParameterDescriptor{};
-  param_desc_watchdog_timeout.description = "USE model names!";
+  param_desc_watchdog_timeout.description = "timeout after which a vehicle stopps if no command is received!";
   this->declare_parameter<double>("base_watchdog_timeout", 0.2, param_desc_watchdog_timeout);
 
   auto param_desc_is_depth_canonical = rcl_interfaces::msg::ParameterDescriptor{};
@@ -37,12 +48,24 @@ StageNode::StageNode(rclcpp::NodeOptions options)
   auto param_desc_world_file = rcl_interfaces::msg::ParameterDescriptor{};
   param_desc_world_file.description = "USE model names!";
   this->declare_parameter<std::string>("world_file", "cave.world", param_desc_world_file);
+
+  callback_update_parameter();
+
+    using namespace std::chrono_literals;
+  timer_update_parameter_ = this->create_wall_timer(1000ms, std::bind(&StageNode::callback_update_parameter, this));
 }
 
-StageNode::~StageNode()
-{    
-    for (std::vector<StageRobot const*>::iterator r = this->robotmodels_.begin(); r != this->robotmodels_.end(); ++r)
-        delete *r;
+void StageNode::callback_update_parameter(){
+  double base_watchdog_timeout_sec {0.2};
+  this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
+  this->base_watchdog_timeout = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
+
+  if (!std::filesystem::exists(world_file_))
+  {
+    RCLCPP_FATAL(this->get_logger(), "The world file %s does not exist.", world_file_.c_str());
+  }
+
+  RCLCPP_INFO(this->get_logger(), "callback_update_parameter");
 }
 
 // since stageros is single-threaded, this is OK. revisit if that changes!
@@ -151,7 +174,7 @@ void StageNode::cmdvelReceived(int idx, const geometry_msgs::msg::Twist::SharedP
 
 void StageNode::init(int argc, char** argv)
 {
-    double base_watchdog_timeout_sec {0.5};
+    double base_watchdog_timeout_sec {5.0};
     this->get_parameter("enable_gui", this->enable_gui_);
     this->get_parameter("use_model_names", this->use_model_names);
     this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);

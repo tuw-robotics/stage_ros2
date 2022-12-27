@@ -12,3 +12,9 @@ cd YOUR_ROS2_WORKSPACE
 colcon build --symlink-install --cmake-args -DOpenGL_GL_PREFERENCE=LEGACY 
 colcon build --symlink-install --packages-select stage_ros2        
 ```
+
+```
+cd YOUR_ROS2_WORKSPACE
+cd src/stage_ros2/world
+run stage_ros2 stage_ros2  --ros-args --ros-args -p world_file:=line.world 
+```

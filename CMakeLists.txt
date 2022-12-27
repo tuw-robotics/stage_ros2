@@ -50,6 +50,12 @@ target_compile_features(stage_ros2 PUBLIC c_std_99 cxx_std_17)  # Require C99 an
 target_link_libraries(stage_ros2 stage_node ${STAGE_LIBRARIES})
 ament_target_dependencies(stage_ros2 rclcpp)
 
+install(
+  DIRECTORY
+    launch
+  DESTINATION
+    share/${PROJECT_NAME}/)
+
 install(TARGETS
   stage_node
   ARCHIVE DESTINATION lib

@@ -109,9 +109,17 @@ private:
     static geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
 public:
     ~StageNode();
-    // Constructor; stage itself needs argc/argv.  fname is the .world file
-    // that stage should load.
+    // Constructor
     void init(int argc, char** argv);
+
+    // initialzes and declares ros parameters
+    void init_parameter();
+
+    // callback to check changes on the parameters
+    void callback_update_parameter();
+
+    // timer to check regulary for parameter changes
+    rclcpp::TimerBase::SharedPtr timer_update_parameter_;
 
     // Subscribe to models of interest.  Currently, we find and subscribe
     // to the first 'laser' model and the first 'position' model.  Returns
@@ -133,6 +141,8 @@ public:
 
     // The main simulator object
     Stg::World* world;
+
+
 };
 
 
