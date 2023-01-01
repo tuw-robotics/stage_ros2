@@ -85,7 +85,7 @@ const char *StageNode::mapName(const char *name, size_t robotID, Stg::Model* mod
         }
         else
         {
-            snprintf(buf, sizeof(buf), "/robot_%u/%s", (unsigned int)robotID, name);
+            snprintf(buf, sizeof(buf), "robot_%u/%s", (unsigned int)robotID, name);
         }
 
         return buf;
