@@ -62,11 +62,10 @@ my_block( pose [ 5 4 0 180.000 ] color "green")
 my_block( pose [ 5 7 0 180.000 ] color "blue")
 
 # throw in a robot
-pioneer2dx_no_sonar 
+pioneer2dx_with_laser 
 (
   # can refer to the robot by this name
   name "robot_0"
   color "red" 
-  pose [ -7 -7 0 45 ] 
-  hokuyolaser(pose [ 0.225 0.000 -0.15 0.000 ])
+  pose [ 0 0 0 45 ] 
 )

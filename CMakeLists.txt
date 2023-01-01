@@ -52,7 +52,9 @@ ament_target_dependencies(stage_ros2 rclcpp)
 
 install(
   DIRECTORY
-    launch
+  launch
+  world
+  config
   DESTINATION
     share/${PROJECT_NAME}/)
 

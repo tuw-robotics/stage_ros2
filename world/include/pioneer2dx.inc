@@ -56,22 +56,3 @@ define pioneer2dx_no_sonar pioneer2dx_base_no_sonar
     z [0 0.22]
   )
 )
-
-define qrcodereader fiducial
-(
-  fiducial_key 1 # fiducial_key values of model and fiducial detector must match
-
-  # fiducial properties
-  range_min 0.0
-  range_max 8.0
-  range_max_id 5.0
-  fov 270.0
-  ignore_zloc 1  #  When set to 1, the fiducial finder ignores the z component when checking a fiducial
-
-  model
-  (
-    # model properties
-    size [ 0.1 0.1 0.1 ]
-    color "green"
-  )
-)

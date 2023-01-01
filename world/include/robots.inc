@@ -5,33 +5,71 @@ define hokuyolaser ranger
   sensor(       
     # laser-specific properties
     # factory settings for LMS200  
+    pose [ 0 0 0 0 ]
+    size [ 0.07 0.07 0.05 ]
     range [ 0.0  5.0 ]
     fov 270.0
     samples 270
+    color_rgba [ 0 0 1 0.15 ]
   )
   model
   (
     # generic model properties
-    size [ 0.07 0.07 0.05 ] # dimensions from LMS200 data sheet  
+    pose [ 0.0 0.0 -0.2 0.0 ]
+    size [ 0.07 0.07 0.05 ]  
     color "blue"
   )
 )
 
-define mycamera camera
+define camera_realsens_d435 camera
 (
-	range [ 0.2 8.0 ]
-	resolution [ 100 100 ]
-	fov [ 70 40 ]
+	range [ 0.3 3.0 ]
+	resolution [ 160 90 ]  # 1280 × 720 / 8
+ 	fov [ 87 58 ]
 	pantilt [ 0 0 ]
 	alwayson 1
+  size [ 0.025 0.09 0.025 ]
+  color "gray"
+)
+
+define qrcodereader fiducial
+(
+  fiducial_key 1 # fiducial_key values of model and fiducial detector must match
+
+  # fiducial properties
+  range_min 0.0
+  range_max 8.0
+  range_max_id 5.0
+  fov 270.0
+  ignore_zloc 1  #  When set to 1, the fiducial finder ignores the z component when checking a fiducial
+
+  model
+  (
+    # model properties
+    size [ 0.1 0.1 0.1 ]
+    color "green"
+  )
 )
 
 # throw in a robot
-define tuw_pioneer2dx pioneer2dx_no_sonar 
+define pioneer2dx_with_laser pioneer2dx_no_sonar 
 (
   # can refer to the robot by this name
-  hokuyolaser(pose [ 0.15 0 -0.2 0 ])
-  mycamera(pose [ 0 0 0.5 0 ])
+  hokuyolaser(pose [ 0.15 0 0 0 ])
+  model
+  (
+    # generic model properties
+    pose [ -0.1 0.0 0 0.0 ]
+    size [ 0.2 0.2 0.05 ]  
+    color "DimGray"
+  )
+)
+
+# throw in a robot
+define pioneer2dx_with_laser_and_camera pioneer2dx_with_laser 
+(
+  # can refer to the robot by this name
+  camera_realsens_d435(pose [ 0 0 0.5 0 ])
   mount( pose [ 0 -0.15 0 0.000 ] color "gray")
   mount( pose [ 0  0.15 0 0.000 ] color "gray")
 )

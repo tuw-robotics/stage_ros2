@@ -14,10 +14,10 @@ def generate_launch_description():
 
 
     use_sim_time     = LaunchConfiguration('use_sim_time',  default='true')
-    tuw_gazebo_models = get_package_share_directory('stage_ros2')
+    this_directory = get_package_share_directory('stage_ros2')
 
     def rviz_launch_configuration(context):
-        file = os.path.join(tuw_gazebo_models, 'config/rviz', context.launch_configurations['config'] + '.rviz')
+        file = os.path.join(this_directory, 'config/rviz', context.launch_configurations['config'] + '.rviz')
         return [SetLaunchConfiguration('config', file)]
 
     namespace_arg    = DeclareLaunchArgument('namespace',   default_value=TextSubstitution(text=''))
