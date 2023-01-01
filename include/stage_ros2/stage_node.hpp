@@ -97,7 +97,7 @@ private:
     rclcpp::Duration base_watchdog_timeout;
 
     // Current simulation time
-    rclcpp::Time sim_time;
+    rclcpp::Time sim_time_;
     
     // Last time we saved global position (for velocity calculation).
     rclcpp::Time base_last_globalpos_time;
@@ -107,6 +107,7 @@ private:
     static geometry_msgs::msg::TransformStamped create_transform_stamped(const tf2::Transform &in, const rclcpp::Time &timestamp, const std::string &frame_id, const std::string &child_frame_id);
 
     static geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
+
 public:
     ~StageNode();
     // Constructor
@@ -126,8 +127,6 @@ public:
     // 0 on success (both models subscribed), -1 otherwise.
     int SubscribeModels();
 
-    // Our callback
-    int WorldCallback();
     
     // Do one update of the world.  May pause if the next update time
     // has not yet arrived.
