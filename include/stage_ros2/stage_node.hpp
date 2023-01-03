@@ -31,6 +31,25 @@
 
 #include "stage_ros2/visibility.h"
 
+
+    //a structure representing a robot inthe simulator
+    class Robot
+    {
+        rclcpp::Node *node_;
+
+        public:
+        Robot(rclcpp::Node *node)
+            :node_(node){
+
+        }
+        //stage related models
+        Stg::ModelPosition* positionmodel; //one position
+        std::vector<Stg::ModelCamera *> cameras; //multiple cameras per position
+        std::vector<Stg::ModelRanger *> rangers; //multiple rangers per position
+    };
+
+
+
 // Our node
 class StageNode : public rclcpp::Node
 {
@@ -42,9 +61,9 @@ private:
     std::mutex msg_lock;
 
     // The models that we're interested in
-    std::vector<Stg::ModelCamera *> cameramodels;
-    std::vector<Stg::ModelRanger *> lasermodels;
-    std::vector<Stg::ModelPosition *> positionmodels;
+    std::vector<Stg::ModelCamera *> cameramodels_;
+    std::vector<Stg::ModelRanger *> lasermodels_;
+    std::vector<Stg::ModelPosition *> positionmodels_;
 
     //a structure representing a robot inthe simulator
     struct StageRobot
@@ -67,16 +86,18 @@ private:
     };
 
     std::vector<StageRobot const *> robotmodels_;
+    std::vector<std::shared_ptr<Robot>> robots_;
 
     // Used to remember initial poses for soft reset
-    std::vector<Stg::Pose> initial_poses;
+    std::vector<Stg::Pose> initial_poses_;
     rclcpp::Service<std_srvs::srv::Empty>::SharedPtr reset_srv_;
 
     rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_pub_;
 
-    bool isDepthCanonical;
+    bool isDepthCanonical_;
     bool use_model_names;
     bool enable_gui_;
+    bool publish_ground_truth_;
     std::string world_file_;
 
     // A helper function that is executed for each stage model.  We use it
@@ -93,16 +114,16 @@ private:
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_;
 
     // Last time that we received a velocity command
-    rclcpp::Time base_last_cmd;
-    rclcpp::Duration base_watchdog_timeout;
+    rclcpp::Time base_last_cmd_;
+    rclcpp::Duration base_watchdog_timeout_;
 
     // Current simulation time
     rclcpp::Time sim_time_;
     
     // Last time we saved global position (for velocity calculation).
-    rclcpp::Time base_last_globalpos_time;
+    rclcpp::Time base_last_globalpos_time_;
     // Last published global pose of each robot
-    std::vector<Stg::Pose> base_last_globalpos;
+    std::vector<Stg::Pose> base_last_globalpos_;
 
     static geometry_msgs::msg::TransformStamped create_transform_stamped(const tf2::Transform &in, const rclcpp::Time &timestamp, const std::string &frame_id, const std::string &child_frame_id);
 

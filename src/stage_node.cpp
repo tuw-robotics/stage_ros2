@@ -1,7 +1,7 @@
-
 #include <stage_ros2/stage_node.hpp>
 
 #include <chrono>
+#include <memory>
 #include <filesystem>
 
 #define IMAGE "image"
@@ -13,7 +13,7 @@
 #define CMD_VEL "cmd_vel"
 
 StageNode::StageNode(rclcpp::NodeOptions options)
-    : Node("stage_ros2", options), base_watchdog_timeout(0, 0)
+    : Node("stage_ros2", options), base_watchdog_timeout_(0, 0)
 {
     tf_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
     init_parameter();
@@ -43,6 +43,10 @@ void StageNode::init_parameter()
     param_desc_is_depth_canonical.description = "USE model names!";
     this->declare_parameter<bool>("is_depth_canonical", true, param_desc_is_depth_canonical);
 
+    auto param_desc_publish_ground_truth = rcl_interfaces::msg::ParameterDescriptor{};
+    param_desc_publish_ground_truth.description = "publishes on true a ground truth tf!";
+    this->declare_parameter<bool>("publish_ground_truth", true, param_desc_publish_ground_truth);
+
     auto param_desc_world_file = rcl_interfaces::msg::ParameterDescriptor{};
     param_desc_world_file.description = "USE model names!";
     this->declare_parameter<std::string>("world_file", "cave.world", param_desc_world_file);
@@ -57,7 +61,9 @@ void StageNode::callback_update_parameter()
 {
     double base_watchdog_timeout_sec{0.2};
     this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
-    this->base_watchdog_timeout = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
+    this->base_watchdog_timeout_ = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
+
+    this->get_parameter("publish_ground_truth", this->publish_ground_truth_);
     RCLCPP_INFO(this->get_logger(), "callback_update_parameter");
 }
 
@@ -67,7 +73,7 @@ const char *StageNode::mapName(const char *name, size_t robotID, Stg::Model *mod
     // ROS_INFO("Robot %lu: Device %s", robotID, name);
     bool umn = this->use_model_names;
 
-    if ((positionmodels.size() > 1) || umn)
+    if ((positionmodels_.size() > 1) || umn)
     {
         static char buf[100];
         std::size_t found = std::string(((Stg::Ancestor *)mod)->Token()).find(":");
@@ -92,7 +98,7 @@ const char *StageNode::mapName(const char *name, size_t robotID, size_t deviceID
     // ROS_INFO("Robot %lu: Device %s:%lu", robotID, name, deviceID);
     bool umn = this->use_model_names;
 
-    if ((positionmodels.size() > 1) || umn)
+    if ((positionmodels_.size() > 1) || umn)
     {
         static char buf[100];
         std::size_t found = std::string(((Stg::Ancestor *)mod)->Token()).find(":");
@@ -120,20 +126,39 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
 {
     // printf( "inspecting %s, parent\n", mod->Token() );
 
-    if (dynamic_cast<Stg::ModelRanger *>(mod))
-    {
-        node->lasermodels.push_back(dynamic_cast<Stg::ModelRanger *>(mod));
-    }
     if (dynamic_cast<Stg::ModelPosition *>(mod))
     {
-        Stg::ModelPosition *p = dynamic_cast<Stg::ModelPosition *>(mod);
+        Stg::ModelPosition *position = dynamic_cast<Stg::ModelPosition *>(mod);
         // remember initial poses
-        node->positionmodels.push_back(p);
-        node->initial_poses.push_back(p->GetGlobalPose());
+        node->positionmodels_.push_back(position);
+        node->initial_poses_.push_back(position->GetGlobalPose());
+        auto robot = std::make_shared<Robot>(node);
+        node->robots_.push_back(robot);
+        robot->positionmodel = position;
+    }
+
+    if (dynamic_cast<Stg::ModelRanger *>(mod))
+    {
+        Stg::ModelRanger *ranger = dynamic_cast<Stg::ModelRanger *>(mod);
+        node->lasermodels_.push_back(ranger);
+        Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(ranger->Parent());
+        for (std::shared_ptr<Robot> robot: node->robots_){
+            if (parent == robot->positionmodel){
+                robot->rangers.push_back(ranger);
+            }
+        }
+
     }
     if (dynamic_cast<Stg::ModelCamera *>(mod))
     {
-        node->cameramodels.push_back(dynamic_cast<Stg::ModelCamera *>(mod));
+        Stg::ModelCamera *camera = dynamic_cast<Stg::ModelCamera *>(mod);
+        node->cameramodels_.push_back(camera);
+        Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(camera->Parent());
+        for (std::shared_ptr<Robot> robot: node->robots_){
+            if (parent == robot->positionmodel){
+                robot->cameras.push_back(camera);
+            }
+        }
     }
     return 0;
 }
@@ -161,11 +186,11 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
     }
 
     // TODO make this only affect one robot if necessary
-    if ((node->base_watchdog_timeout.nanoseconds() > 0) &&
-        ((node->sim_time_ - node->base_last_cmd) >= node->base_watchdog_timeout))
+    if ((node->base_watchdog_timeout_.nanoseconds() > 0) &&
+        ((node->sim_time_ - node->base_last_cmd_) >= node->base_watchdog_timeout_))
     {
-        for (size_t r = 0; r < node->positionmodels.size(); r++)
-            node->positionmodels[r]->SetSpeed(0.0, 0.0, 0.0);
+        for (size_t r = 0; r < node->positionmodels_.size(); r++)
+            node->positionmodels_[r]->SetSpeed(0.0, 0.0, 0.0);
     }
 
     // loop on the robot models
@@ -273,20 +298,20 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
         tf2::Transform gt(q_gpose, tf2::Vector3(gpose.x, gpose.y, 0.0));
         // Velocity is 0 by default and will be set only if there is previous pose and time delta>0
         Stg::Velocity gvel(0, 0, 0, 0);
-        if (node->base_last_globalpos.size() > r)
+        if (node->base_last_globalpos_.size() > r)
         {
-            Stg::Pose prevpose = node->base_last_globalpos.at(r);
-            double dT = (node->sim_time_ - node->base_last_globalpos_time).seconds();
+            Stg::Pose prevpose = node->base_last_globalpos_.at(r);
+            double dT = (node->sim_time_ - node->base_last_globalpos_time_).seconds();
             if (dT > 0)
                 gvel = Stg::Velocity(
                     (gpose.x - prevpose.x) / dT,
                     (gpose.y - prevpose.y) / dT,
                     (gpose.z - prevpose.z) / dT,
                     Stg::normalize(gpose.a - prevpose.a) / dT);
-            node->base_last_globalpos.at(r) = gpose;
+            node->base_last_globalpos_.at(r) = gpose;
         }
         else // There are no previous readings, adding current pose...
-            node->base_last_globalpos.push_back(gpose);
+            node->base_last_globalpos_.push_back(gpose);
 
         nav_msgs::msg::Odometry ground_truth_msg;
         ground_truth_msg.pose.pose.position.x = gt.getOrigin().x();
@@ -354,15 +379,15 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
                 sensor_msgs::msg::Image depth_msg;
                 depth_msg.height = cameramodel->getHeight();
                 depth_msg.width = cameramodel->getWidth();
-                depth_msg.encoding = node->isDepthCanonical ? sensor_msgs::image_encodings::TYPE_32FC1 : sensor_msgs::image_encodings::TYPE_16UC1;
+                depth_msg.encoding = node->isDepthCanonical_ ? sensor_msgs::image_encodings::TYPE_32FC1 : sensor_msgs::image_encodings::TYPE_16UC1;
                 // node->depthMsgs[r].is_bigendian="";
-                int sz = node->isDepthCanonical ? sizeof(float) : sizeof(uint16_t);
+                int sz = node->isDepthCanonical_ ? sizeof(float) : sizeof(uint16_t);
                 size_t len = depth_msg.width * depth_msg.height;
                 depth_msg.step = depth_msg.width * sz;
                 depth_msg.data.resize(len * sz);
 
                 // processing data according to REP118
-                if (node->isDepthCanonical)
+                if (node->isDepthCanonical_)
                 {
                     double nearClip = cameramodel->getCamera().nearClip();
                     double farClip = cameramodel->getCamera().farClip();
@@ -473,7 +498,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
         }
     }
 
-    node->base_last_globalpos_time = node->sim_time_;
+    node->base_last_globalpos_time_ = node->sim_time_;
     rosgraph_msgs::msg::Clock clock_msg;
     clock_msg.clock = node->sim_time_;
     node->clock_pub_->publish(clock_msg);
@@ -483,10 +508,10 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
 bool StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std_srvs::srv::Empty::Response::SharedPtr)
 {
     RCLCPP_INFO(this->get_logger(), "Resetting stage!");
-    for (size_t r = 0; r < this->positionmodels.size(); r++)
+    for (size_t r = 0; r < this->positionmodels_.size(); r++)
     {
-        this->positionmodels[r]->SetPose(this->initial_poses[r]);
-        this->positionmodels[r]->SetStall(false);
+        this->positionmodels_[r]->SetPose(this->initial_poses_[r]);
+        this->positionmodels_[r]->SetStall(false);
     }
     return true;
 }
@@ -494,10 +519,10 @@ bool StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std
 void StageNode::cmdvelReceived(int idx, const geometry_msgs::msg::Twist::SharedPtr msg)
 {
     std::scoped_lock lock(msg_lock);
-    this->positionmodels[idx]->SetSpeed(msg->linear.x,
+    this->positionmodels_[idx]->SetSpeed(msg->linear.x,
                                         msg->linear.y,
                                         msg->angular.z);
-    this->base_last_cmd = this->sim_time_;
+    this->base_last_cmd_ = this->sim_time_;
 }
 
 void StageNode::init(int argc, char **argv)
@@ -506,12 +531,13 @@ void StageNode::init(int argc, char **argv)
     this->get_parameter("enable_gui", this->enable_gui_);
     this->get_parameter("use_model_names", this->use_model_names);
     this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
-    this->base_watchdog_timeout = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
-    this->get_parameter("is_depth_canonical", this->isDepthCanonical);
+    this->base_watchdog_timeout_ = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
+    this->get_parameter("is_depth_canonical", this->isDepthCanonical_);
     this->get_parameter("world_file", this->world_file_);
+    this->get_parameter("publish_ground_truth", this->publish_ground_truth_);
 
     this->sim_time_ = rclcpp::Time(0, 0);
-    this->base_last_cmd = rclcpp::Time(0, 0);
+    this->base_last_cmd_ = rclcpp::Time(0, 0);
 
     if (!std::filesystem::exists(world_file_))
     {
@@ -547,32 +573,32 @@ int StageNode::SubscribeModels()
 {
     this->set_parameter(rclcpp::Parameter("use_sim_time", true));
 
-    for (size_t r = 0; r < this->positionmodels.size(); r++)
+    for (size_t r = 0; r < this->positionmodels_.size(); r++)
     {
         StageRobot *new_robot = new StageRobot;
-        new_robot->positionmodel = this->positionmodels[r];
+        new_robot->positionmodel = this->positionmodels_[r];
         new_robot->positionmodel->Subscribe();
 
-        RCLCPP_INFO(this->get_logger(), "Subscribed to Stage position model \"%s\"", this->positionmodels[r]->Token());
+        RCLCPP_INFO(this->get_logger(), "Subscribed to Stage position model \"%s\"", this->positionmodels_[r]->Token());
 
-        for (size_t s = 0; s < this->lasermodels.size(); s++)
+        for (size_t s = 0; s < this->lasermodels_.size(); s++)
         {
-            if (this->lasermodels[s] and this->lasermodels[s]->Parent() == new_robot->positionmodel)
+            if (this->lasermodels_[s] and this->lasermodels_[s]->Parent() == new_robot->positionmodel)
             {
-                new_robot->lasermodels.push_back(this->lasermodels[s]);
-                this->lasermodels[s]->Subscribe();
-                RCLCPP_INFO(this->get_logger(), "subscribed to Stage ranger \"%s\"", this->lasermodels[s]->Token());
+                new_robot->lasermodels.push_back(this->lasermodels_[s]);
+                this->lasermodels_[s]->Subscribe();
+                RCLCPP_INFO(this->get_logger(), "subscribed to Stage ranger \"%s\"", this->lasermodels_[s]->Token());
             }
         }
 
-        for (size_t s = 0; s < this->cameramodels.size(); s++)
+        for (size_t s = 0; s < this->cameramodels_.size(); s++)
         {
-            if (this->cameramodels[s] and this->cameramodels[s]->Parent() == new_robot->positionmodel)
+            if (this->cameramodels_[s] and this->cameramodels_[s]->Parent() == new_robot->positionmodel)
             {
-                new_robot->cameramodels.push_back(this->cameramodels[s]);
-                this->cameramodels[s]->Subscribe();
+                new_robot->cameramodels.push_back(this->cameramodels_[s]);
+                this->cameramodels_[s]->Subscribe();
 
-                RCLCPP_INFO(this->get_logger(), "subscribed to Stage camera model \"%s\"", this->cameramodels[s]->Token());
+                RCLCPP_INFO(this->get_logger(), "subscribed to Stage camera model \"%s\"", this->cameramodels_[s]->Token());
             }
         }
 
