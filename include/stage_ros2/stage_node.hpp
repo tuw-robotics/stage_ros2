@@ -45,11 +45,6 @@ private:
     // A mutex to lock access to fields that are used in message callbacks
     std::mutex msg_lock;
 
-    // The models that we're interested in
-    std::vector<Stg::ModelCamera *> cameramodels_;
-    std::vector<Stg::ModelRanger *> lasermodels_;
-    std::vector<Stg::ModelPosition *> positionmodels_;
-
 
     //a structure representing a robot inthe simulator
     class Vehicle
@@ -79,28 +74,6 @@ private:
         rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmdvel_sub; //one cmd_vel subscriber
     };
 
-
-    //a structure representing a robot inthe simulator
-    struct StageRobot
-    {
-        //stage related models
-        Stg::ModelPosition* positionmodel; //one position
-        std::vector<Stg::ModelCamera *> cameramodels; //multiple cameras per position
-        std::vector<Stg::ModelRanger *> lasermodels; //multiple rangers per position
-
-        //ros publishers
-        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub; //one odom
-        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ground_truth_pub; //one ground truth
-
-        std::vector<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr> image_pubs; //multiple images
-        std::vector<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr> depth_pubs; //multiple depths
-        std::vector<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr> camera_pubs; //multiple cameras
-        std::vector<rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr> laser_pubs; //multiple lasers
-
-        rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmdvel_sub; //one cmd_vel subscriber
-    };
-
-    std::vector<StageRobot const *> robotmodels_;
     std::vector<std::shared_ptr<Vehicle>> vehicles_;
 
     // Used to remember initial poses for soft reset

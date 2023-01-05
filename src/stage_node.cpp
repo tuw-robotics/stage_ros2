@@ -21,8 +21,6 @@ StageNode::StageNode(rclcpp::NodeOptions options)
 
 StageNode::~StageNode()
 {
-    for (std::vector<StageRobot const *>::iterator r = this->robotmodels_.begin(); r != this->robotmodels_.end(); ++r)
-        delete *r;
 }
 
 void StageNode::init_parameter()
@@ -73,7 +71,7 @@ const char *StageNode::mapName(const char *name, size_t robotID, Stg::Model *mod
     // ROS_INFO("Robot %lu: Device %s", robotID, name);
     bool umn = this->use_model_names;
 
-    if ((positionmodels_.size() > 1) || umn)
+    if ((this->vehicles_.size() > 1) || umn)
     {
         static char buf[100];
         std::size_t found = std::string(((Stg::Ancestor *)mod)->Token()).find(":");
@@ -98,7 +96,7 @@ const char *StageNode::mapName(const char *name, size_t robotID, size_t deviceID
     // ROS_INFO("Robot %lu: Device %s:%lu", robotID, name, deviceID);
     bool umn = this->use_model_names;
 
-    if ((positionmodels_.size() > 1) || umn)
+    if ((this->vehicles_.size() > 1) || umn)
     {
         static char buf[100];
         std::size_t found = std::string(((Stg::Ancestor *)mod)->Token()).find(":");
@@ -130,7 +128,6 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
     {
         Stg::ModelPosition *position = dynamic_cast<Stg::ModelPosition *>(mod);
         // remember initial poses
-        node->positionmodels_.push_back(position);
         node->initial_poses_.push_back(position->GetGlobalPose());
         auto vehicle = std::make_shared<Vehicle>(node);
         node->vehicles_.push_back(vehicle);
@@ -140,7 +137,6 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
     if (dynamic_cast<Stg::ModelRanger *>(mod))
     {
         Stg::ModelRanger *ranger = dynamic_cast<Stg::ModelRanger *>(mod);
-        node->lasermodels_.push_back(ranger);
         Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(ranger->Parent());
         for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
             if (parent == vehcile->positionmodel){
@@ -152,7 +148,6 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
     if (dynamic_cast<Stg::ModelCamera *>(mod))
     {
         Stg::ModelCamera *camera = dynamic_cast<Stg::ModelCamera *>(mod);
-        node->cameramodels_.push_back(camera);
         Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(camera->Parent());
         for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
             if (parent == vehcile->positionmodel){
@@ -189,19 +184,19 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
     if ((node->base_watchdog_timeout_.nanoseconds() > 0) &&
         ((node->sim_time_ - node->base_last_cmd_) >= node->base_watchdog_timeout_))
     {
-        for (size_t r = 0; r < node->positionmodels_.size(); r++)
-            node->positionmodels_[r]->SetSpeed(0.0, 0.0, 0.0);
+        for (size_t r = 0; r < node->vehicles_.size(); r++)
+            node->vehicles_[r]->positionmodel->SetSpeed(0.0, 0.0, 0.0);
     }
 
     // loop on the robot models
-    for (size_t r = 0; r < node->robotmodels_.size(); ++r)
+    for (size_t r = 0; r < node->vehicles_.size(); ++r)
     {
-        StageRobot const *robotmodel = node->robotmodels_[r];
+        auto robotmodel = node->vehicles_[r];
 
         // loop on the laser devices for the current robot
-        for (size_t s = 0; s < robotmodel->lasermodels.size(); ++s)
+        for (size_t s = 0; s < robotmodel->rangers.size(); ++s)
         {
-            Stg::ModelRanger const *lasermodel = robotmodel->lasermodels[s];
+            Stg::ModelRanger const *lasermodel = robotmodel->rangers[s];
             const std::vector<Stg::ModelRanger::Sensor> &sensors = lasermodel->GetSensors();
 
             if (sensors.size() > 1)
@@ -229,7 +224,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
                     msg.intensities[i] = sensor.intensities[i];
                 }
 
-                if (robotmodel->lasermodels.size() > 1)
+                if (robotmodel->rangers.size() > 1)
                     msg.header.frame_id = node->mapName("base_laser_link", r, s, static_cast<Stg::Model *>(robotmodel->positionmodel));
                 else
                     msg.header.frame_id = node->mapName("base_laser_link", r, static_cast<Stg::Model *>(robotmodel->positionmodel));
@@ -245,7 +240,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
             laserQ.setRPY(0.0, 0.0, lp.a);
             tf2::Transform txLaser = tf2::Transform(laserQ, tf2::Vector3(lp.x, lp.y, robotmodel->positionmodel->GetGeom().size.z + lp.z));
 
-            if (robotmodel->lasermodels.size() > 1)
+            if (robotmodel->rangers.size() > 1)
                 node->tf_->sendTransform(create_transform_stamped(txLaser, node->sim_time_,
                                                                   node->mapName("base_link", r, static_cast<Stg::Model *>(robotmodel->positionmodel)),
                                                                   node->mapName("base_laser_link", r, s, static_cast<Stg::Model *>(robotmodel->positionmodel))));
@@ -332,9 +327,9 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
         robotmodel->ground_truth_pub->publish(ground_truth_msg);
 
         // cameras
-        for (size_t s = 0; s < robotmodel->cameramodels.size(); ++s)
+        for (size_t s = 0; s < robotmodel->cameras.size(); ++s)
         {
-            Stg::ModelCamera *cameramodel = robotmodel->cameramodels[s];
+            Stg::ModelCamera *cameramodel = robotmodel->cameras[s];
             // Get latest image data
             // Translate into ROS message format and publish
             if (cameramodel->FrameColor())
@@ -362,7 +357,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
                     memcpy(&(image_msg.data[(height - y) * linewidth]), temp, linewidth);
                 }
 
-                if (robotmodel->cameramodels.size() > 1)
+                if (robotmodel->cameras.size() > 1)
                     image_msg.header.frame_id = node->mapName("camera", r, s, static_cast<Stg::Model *>(robotmodel->positionmodel));
                 else
                     image_msg.header.frame_id = node->mapName("camera", r, static_cast<Stg::Model *>(robotmodel->positionmodel));
@@ -424,7 +419,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
                     memcpy(&(depth_msg.data[(height - y) * linewidth]), temp, linewidth);
                 }
 
-                if (robotmodel->cameramodels.size() > 1)
+                if (robotmodel->cameras.size() > 1)
                     depth_msg.header.frame_id = node->mapName("camera", r, s, static_cast<Stg::Model *>(robotmodel->positionmodel));
                 else
                     depth_msg.header.frame_id = node->mapName("camera", r, static_cast<Stg::Model *>(robotmodel->positionmodel));
@@ -445,7 +440,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
 
                 tf2::Transform tr = tf2::Transform(Q, tf2::Vector3(lp.x, lp.y, robotmodel->positionmodel->GetGeom().size.z + lp.z));
 
-                if (robotmodel->cameramodels.size() > 1)
+                if (robotmodel->cameras.size() > 1)
                     node->tf_->sendTransform(create_transform_stamped(tr, node->sim_time_,
                                                                       node->mapName("base_link", r, static_cast<Stg::Model *>(robotmodel->positionmodel)),
                                                                       node->mapName("camera", r, s, static_cast<Stg::Model *>(robotmodel->positionmodel))));
@@ -455,7 +450,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
                                                                       node->mapName("camera", r, static_cast<Stg::Model *>(robotmodel->positionmodel))));
 
                 sensor_msgs::msg::CameraInfo camera_msg;
-                if (robotmodel->cameramodels.size() > 1)
+                if (robotmodel->cameras.size() > 1)
                     camera_msg.header.frame_id = node->mapName("camera", r, s, static_cast<Stg::Model *>(robotmodel->positionmodel));
                 else
                     camera_msg.header.frame_id = node->mapName("camera", r, static_cast<Stg::Model *>(robotmodel->positionmodel));
@@ -508,10 +503,10 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
 bool StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std_srvs::srv::Empty::Response::SharedPtr)
 {
     RCLCPP_INFO(this->get_logger(), "Resetting stage!");
-    for (size_t r = 0; r < this->positionmodels_.size(); r++)
+    for (size_t r = 0; r < this->vehicles_.size(); r++)
     {
-        this->positionmodels_[r]->SetPose(this->initial_poses_[r]);
-        this->positionmodels_[r]->SetStall(false);
+        this->vehicles_[r]->positionmodel->SetPose(this->initial_poses_[r]);
+        this->vehicles_[r]->positionmodel->SetStall(false);
     }
     return true;
 }
@@ -519,7 +514,7 @@ bool StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std
 void StageNode::cmdvelReceived(int idx, const geometry_msgs::msg::Twist::SharedPtr msg)
 {
     std::scoped_lock lock(msg_lock);
-    this->positionmodels_[idx]->SetSpeed(msg->linear.x,
+    this->vehicles_[idx]->positionmodel->SetSpeed(msg->linear.x,
                                         msg->linear.y,
                                         msg->angular.z);
     this->base_last_cmd_ = this->sim_time_;
@@ -573,71 +568,59 @@ int StageNode::SubscribeModels()
 {
     this->set_parameter(rclcpp::Parameter("use_sim_time", true));
 
-    for (size_t r = 0; r < this->positionmodels_.size(); r++)
+    for (size_t r = 0; r < this->vehicles_.size(); r++)
     {
-        StageRobot *new_robot = new StageRobot;
-        new_robot->positionmodel = this->positionmodels_[r];
-        new_robot->positionmodel->Subscribe();
+        auto vehicle = this->vehicles_[r];
+        vehicle->positionmodel->Subscribe();
 
-        RCLCPP_INFO(this->get_logger(), "Subscribed to Stage position model \"%s\"", this->positionmodels_[r]->Token());
+        RCLCPP_INFO(this->get_logger(), "Subscribed to Stage position model \"%s\"", vehicle->positionmodel->Token());
 
-        for (size_t s = 0; s < this->lasermodels_.size(); s++)
+        for (size_t s = 0; s < vehicle->rangers.size(); s++)
         {
-            if (this->lasermodels_[s] and this->lasermodels_[s]->Parent() == new_robot->positionmodel)
-            {
-                new_robot->lasermodels.push_back(this->lasermodels_[s]);
-                this->lasermodels_[s]->Subscribe();
-                RCLCPP_INFO(this->get_logger(), "subscribed to Stage ranger \"%s\"", this->lasermodels_[s]->Token());
-            }
+            vehicle->rangers[s]->Subscribe();
+            RCLCPP_INFO(this->get_logger(), "subscribed to Stage ranger \"%s\"", vehicle->rangers[s]->Token());
         }
 
-        for (size_t s = 0; s < this->cameramodels_.size(); s++)
+        for (size_t s = 0; s < vehicle->cameras.size(); s++)
         {
-            if (this->cameramodels_[s] and this->cameramodels_[s]->Parent() == new_robot->positionmodel)
-            {
-                new_robot->cameramodels.push_back(this->cameramodels_[s]);
-                this->cameramodels_[s]->Subscribe();
-
-                RCLCPP_INFO(this->get_logger(), "subscribed to Stage camera model \"%s\"", this->cameramodels_[s]->Token());
-            }
+            vehicle->cameras[s]->Subscribe();
+            RCLCPP_INFO(this->get_logger(), "subscribed to Stage camera model \"%s\"", vehicle->cameras[s]->Token());
         }
 
         // TODO - print the topic names nicely as well
         RCLCPP_INFO(this->get_logger(), "Robot %s provided %lu rangers and %lu cameras",
-                    new_robot->positionmodel->Token(),
-                    new_robot->lasermodels.size(),
-                    new_robot->cameramodels.size());
+                    vehicle->positionmodel->Token(),
+                    vehicle->rangers.size(),
+                    vehicle->cameras.size());
 
-        new_robot->odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(ODOM, r, static_cast<Stg::Model *>(new_robot->positionmodel)), 10);
-        new_robot->ground_truth_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(BASE_POSE_GROUND_TRUTH, r, static_cast<Stg::Model *>(new_robot->positionmodel)), 10);
-        new_robot->cmdvel_sub = this->create_subscription<geometry_msgs::msg::Twist>(mapName(CMD_VEL, r, static_cast<Stg::Model *>(new_robot->positionmodel)), 10, [this, r](const geometry_msgs::msg::Twist::SharedPtr msg)
+        vehicle->odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(ODOM, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10);
+        vehicle->ground_truth_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(BASE_POSE_GROUND_TRUTH, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10);
+        vehicle->cmdvel_sub = this->create_subscription<geometry_msgs::msg::Twist>(mapName(CMD_VEL, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10, [this, r](const geometry_msgs::msg::Twist::SharedPtr msg)
                                                                                      { this->cmdvelReceived(r, msg); });
 
-        for (size_t s = 0; s < new_robot->lasermodels.size(); ++s)
+        for (size_t s = 0; s < vehicle->rangers.size(); ++s)
         {
-            if (new_robot->lasermodels.size() == 1)
-                new_robot->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, r, static_cast<Stg::Model *>(new_robot->positionmodel)), 10));
+            if (vehicle->rangers.size() == 1)
+                vehicle->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
             else
-                new_robot->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, r, s, static_cast<Stg::Model *>(new_robot->positionmodel)), 10));
+                vehicle->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, r, s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
         }
 
-        for (size_t s = 0; s < new_robot->cameramodels.size(); ++s)
+        for (size_t s = 0; s < vehicle->cameras.size(); ++s)
         {
-            if (new_robot->cameramodels.size() == 1)
+            if (vehicle->cameras.size() == 1)
             {
-                new_robot->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, r, static_cast<Stg::Model *>(new_robot->positionmodel)), 10));
-                new_robot->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, r, static_cast<Stg::Model *>(new_robot->positionmodel)), 10));
-                new_robot->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, r, static_cast<Stg::Model *>(new_robot->positionmodel)), 10));
+                vehicle->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
             }
             else
             {
-                new_robot->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, r, s, static_cast<Stg::Model *>(new_robot->positionmodel)), 10));
-                new_robot->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, r, s, static_cast<Stg::Model *>(new_robot->positionmodel)), 10));
-                new_robot->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, r, s, static_cast<Stg::Model *>(new_robot->positionmodel)), 10));
+                vehicle->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, r, s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, r, s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, r, s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
             }
         }
-
-        this->robotmodels_.push_back(new_robot);
     }
     clock_pub_ = this->create_publisher<rosgraph_msgs::msg::Clock>("/clock", 10);
 
