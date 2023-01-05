@@ -132,9 +132,9 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
         // remember initial poses
         node->positionmodels_.push_back(position);
         node->initial_poses_.push_back(position->GetGlobalPose());
-        auto robot = std::make_shared<Robot>(node);
-        node->robots_.push_back(robot);
-        robot->positionmodel = position;
+        auto vehicle = std::make_shared<Vehicle>(node);
+        node->vehicles_.push_back(vehicle);
+        vehicle->positionmodel = position;
     }
 
     if (dynamic_cast<Stg::ModelRanger *>(mod))
@@ -142,9 +142,9 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
         Stg::ModelRanger *ranger = dynamic_cast<Stg::ModelRanger *>(mod);
         node->lasermodels_.push_back(ranger);
         Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(ranger->Parent());
-        for (std::shared_ptr<Robot> robot: node->robots_){
-            if (parent == robot->positionmodel){
-                robot->rangers.push_back(ranger);
+        for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
+            if (parent == vehcile->positionmodel){
+                vehcile->rangers.push_back(ranger);
             }
         }
 
@@ -154,9 +154,9 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
         Stg::ModelCamera *camera = dynamic_cast<Stg::ModelCamera *>(mod);
         node->cameramodels_.push_back(camera);
         Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(camera->Parent());
-        for (std::shared_ptr<Robot> robot: node->robots_){
-            if (parent == robot->positionmodel){
-                robot->cameras.push_back(camera);
+        for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
+            if (parent == vehcile->positionmodel){
+                vehcile->cameras.push_back(camera);
             }
         }
     }
