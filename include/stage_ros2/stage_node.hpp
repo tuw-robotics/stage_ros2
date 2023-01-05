@@ -49,13 +49,16 @@ private:
     //a structure representing a robot inthe simulator
     class Vehicle
     {
+        size_t id_;
+        Stg::Pose initial_pose_;
         rclcpp::Node *node_;
 
         public:
-        Vehicle(rclcpp::Node *node)
-            :node_(node){
+        Vehicle(size_t id, Stg::Pose pose, rclcpp::Node *node );
 
-        }
+        void soft_reset();
+        size_t id() const;
+
         //stage related models
         Stg::ModelPosition* positionmodel; //one position
         std::vector<Stg::ModelCamera *> cameras; //multiple cameras per position
@@ -77,7 +80,6 @@ private:
     std::vector<std::shared_ptr<Vehicle>> vehicles_;
 
     // Used to remember initial poses for soft reset
-    std::vector<Stg::Pose> initial_poses_;
     rclcpp::Service<std_srvs::srv::Empty>::SharedPtr reset_srv_;
 
     rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_pub_;

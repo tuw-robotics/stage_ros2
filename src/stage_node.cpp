@@ -120,16 +120,19 @@ const char *StageNode::mapName(const char *name, size_t robotID, size_t deviceID
     }
 }
 
+/**
+ * Is called only ones after the simulation starts with each model
+ * The function fills the vehicle vector with pointers to the stage models
+ * @param mod stage model
+ * @param node pointer to this class
+*/
 int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
 {
-    // printf( "inspecting %s, parent\n", mod->Token() );
-
     if (dynamic_cast<Stg::ModelPosition *>(mod))
     {
         Stg::ModelPosition *position = dynamic_cast<Stg::ModelPosition *>(mod);
         // remember initial poses
-        node->initial_poses_.push_back(position->GetGlobalPose());
-        auto vehicle = std::make_shared<Vehicle>(node);
+        auto vehicle = std::make_shared<Vehicle>(node->vehicles_.size(), position->GetGlobalPose(), node);
         node->vehicles_.push_back(vehicle);
         vehicle->positionmodel = position;
     }
@@ -503,11 +506,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
 bool StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std_srvs::srv::Empty::Response::SharedPtr)
 {
     RCLCPP_INFO(this->get_logger(), "Resetting stage!");
-    for (size_t r = 0; r < this->vehicles_.size(); r++)
-    {
-        this->vehicles_[r]->positionmodel->SetPose(this->initial_poses_[r]);
-        this->vehicles_[r]->positionmodel->SetStall(false);
-    }
+    for (auto vehicle: this->vehicles_) vehicle->soft_reset();
     return true;
 }
 
@@ -568,9 +567,8 @@ int StageNode::SubscribeModels()
 {
     this->set_parameter(rclcpp::Parameter("use_sim_time", true));
 
-    for (size_t r = 0; r < this->vehicles_.size(); r++)
+    for (std::shared_ptr<Vehicle> vehicle: this->vehicles_)
     {
-        auto vehicle = this->vehicles_[r];
         vehicle->positionmodel->Subscribe();
 
         RCLCPP_INFO(this->get_logger(), "Subscribed to Stage position model \"%s\"", vehicle->positionmodel->Token());
@@ -593,32 +591,32 @@ int StageNode::SubscribeModels()
                     vehicle->rangers.size(),
                     vehicle->cameras.size());
 
-        vehicle->odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(ODOM, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10);
-        vehicle->ground_truth_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(BASE_POSE_GROUND_TRUTH, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10);
-        vehicle->cmdvel_sub = this->create_subscription<geometry_msgs::msg::Twist>(mapName(CMD_VEL, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10, [this, r](const geometry_msgs::msg::Twist::SharedPtr msg)
-                                                                                     { this->cmdvelReceived(r, msg); });
+        vehicle->odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(ODOM, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10);
+        vehicle->ground_truth_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(BASE_POSE_GROUND_TRUTH, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10);
+        vehicle->cmdvel_sub = this->create_subscription<geometry_msgs::msg::Twist>(mapName(CMD_VEL, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10, [this, vehicle](const geometry_msgs::msg::Twist::SharedPtr msg)
+                                                                                     { this->cmdvelReceived(vehicle->id(), msg); });
 
         for (size_t s = 0; s < vehicle->rangers.size(); ++s)
         {
             if (vehicle->rangers.size() == 1)
-                vehicle->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
             else
-                vehicle->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, r, s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, vehicle->id(), s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
         }
 
         for (size_t s = 0; s < vehicle->cameras.size(); ++s)
         {
             if (vehicle->cameras.size() == 1)
             {
-                vehicle->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-                vehicle->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-                vehicle->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, r, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
             }
             else
             {
-                vehicle->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, r, s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-                vehicle->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, r, s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-                vehicle->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, r, s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, vehicle->id(), s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, vehicle->id(), s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
+                vehicle->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, vehicle->id(), s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
             }
         }
     }
