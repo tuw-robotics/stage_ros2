@@ -51,13 +51,21 @@ private:
     {
         size_t id_;
         Stg::Pose initial_pose_;
-        rclcpp::Node *node_;
+        std::string name_; /// used for the ros publisher
+        StageNode *node_;
+        Stg::World* world_;
+        rclcpp::Time time_last_cmd_received_;
 
+        std::string name_space_; 
         public:
-        Vehicle(size_t id, Stg::Pose pose, rclcpp::Node *node );
+        Vehicle(size_t id, const Stg::Pose &pose, const std::string &name, StageNode *node);
 
         void soft_reset();
         size_t id() const;
+        const std::string& name() const;
+        const std::string& name_space() const;
+        void init_topics(bool use_model_name);
+        void callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg);
 
         //stage related models
         Stg::ModelPosition* positionmodel; //one position
@@ -103,12 +111,6 @@ private:
 
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_;
 
-    // Last time that we received a velocity command
-    rclcpp::Time base_last_cmd_;
-    rclcpp::Duration base_watchdog_timeout_;
-
-    // Current simulation time
-    rclcpp::Time sim_time_;
     
     // Last time we saved global position (for velocity calculation).
     rclcpp::Time base_last_globalpos_time_;
@@ -143,15 +145,19 @@ public:
     // has not yet arrived.
     bool UpdateWorld();
 
-    // Message callback for a MsgBaseVel message, which set velocities.
-    void cmdvelReceived(int idx, const geometry_msgs::msg::Twist::SharedPtr msg);
-
     // Service callback for soft reset
     bool cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std_srvs::srv::Empty::Response::SharedPtr);
 
     // The main simulator object
     Stg::World* world;
 
+
+    // Last time that we received a velocity command
+    rclcpp::Time base_last_cmd_;
+    rclcpp::Duration base_watchdog_timeout_;
+
+    // Current simulation time
+    rclcpp::Time sim_time_;
 
 };
 

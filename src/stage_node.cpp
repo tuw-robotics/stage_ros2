@@ -29,8 +29,9 @@ void StageNode::init_parameter()
     auto param_desc_enable_gui = rcl_interfaces::msg::ParameterDescriptor{};
     param_desc_enable_gui.description = "Enable GUI!";
     this->declare_parameter<bool>("enable_gui", true, param_desc_enable_gui);
+
     auto param_desc_model_names = rcl_interfaces::msg::ParameterDescriptor{};
-    param_desc_model_names.description = "USE model names!";
+    param_desc_model_names.description = "USE model name as name space prefix! True on more than one vehicle!";
     this->declare_parameter<bool>("use_model_names", false, param_desc_model_names);
 
     auto param_desc_watchdog_timeout = rcl_interfaces::msg::ParameterDescriptor{};
@@ -38,7 +39,7 @@ void StageNode::init_parameter()
     this->declare_parameter<double>("base_watchdog_timeout", 0.2, param_desc_watchdog_timeout);
 
     auto param_desc_is_depth_canonical = rcl_interfaces::msg::ParameterDescriptor{};
-    param_desc_is_depth_canonical.description = "USE model names!";
+    param_desc_is_depth_canonical.description = "USE depth canonical!";
     this->declare_parameter<bool>("is_depth_canonical", true, param_desc_is_depth_canonical);
 
     auto param_desc_publish_ground_truth = rcl_interfaces::msg::ParameterDescriptor{};
@@ -131,8 +132,8 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
     if (dynamic_cast<Stg::ModelPosition *>(mod))
     {
         Stg::ModelPosition *position = dynamic_cast<Stg::ModelPosition *>(mod);
-        // remember initial poses
-        auto vehicle = std::make_shared<Vehicle>(node->vehicles_.size(), position->GetGlobalPose(), node);
+        RCLCPP_INFO(node->get_logger(), "New Vehicle \"%s\"", mod->TokenStr().c_str());
+        auto vehicle = std::make_shared<Vehicle>(node->vehicles_.size(), position->GetGlobalPose(), mod->TokenStr(), node);
         node->vehicles_.push_back(vehicle);
         vehicle->positionmodel = position;
     }
@@ -510,15 +511,6 @@ bool StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std
     return true;
 }
 
-void StageNode::cmdvelReceived(int idx, const geometry_msgs::msg::Twist::SharedPtr msg)
-{
-    std::scoped_lock lock(msg_lock);
-    this->vehicles_[idx]->positionmodel->SetSpeed(msg->linear.x,
-                                        msg->linear.y,
-                                        msg->angular.z);
-    this->base_last_cmd_ = this->sim_time_;
-}
-
 void StageNode::init(int argc, char **argv)
 {
     double base_watchdog_timeout_sec{5.0};
@@ -591,34 +583,8 @@ int StageNode::SubscribeModels()
                     vehicle->rangers.size(),
                     vehicle->cameras.size());
 
-        vehicle->odom_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(ODOM, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10);
-        vehicle->ground_truth_pub = this->create_publisher<nav_msgs::msg::Odometry>(mapName(BASE_POSE_GROUND_TRUTH, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10);
-        vehicle->cmdvel_sub = this->create_subscription<geometry_msgs::msg::Twist>(mapName(CMD_VEL, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10, [this, vehicle](const geometry_msgs::msg::Twist::SharedPtr msg)
-                                                                                     { this->cmdvelReceived(vehicle->id(), msg); });
-
-        for (size_t s = 0; s < vehicle->rangers.size(); ++s)
-        {
-            if (vehicle->rangers.size() == 1)
-                vehicle->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-            else
-                vehicle->laser_pubs.push_back(this->create_publisher<sensor_msgs::msg::LaserScan>(mapName(BASE_SCAN, vehicle->id(), s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-        }
-
-        for (size_t s = 0; s < vehicle->cameras.size(); ++s)
-        {
-            if (vehicle->cameras.size() == 1)
-            {
-                vehicle->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-                vehicle->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-                vehicle->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, vehicle->id(), static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-            }
-            else
-            {
-                vehicle->image_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(IMAGE, vehicle->id(), s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-                vehicle->depth_pubs.push_back(this->create_publisher<sensor_msgs::msg::Image>(mapName(DEPTH, vehicle->id(), s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-                vehicle->camera_pubs.push_back(this->create_publisher<sensor_msgs::msg::CameraInfo>(mapName(CAMERA_INFO, vehicle->id(), s, static_cast<Stg::Model *>(vehicle->positionmodel)), 10));
-            }
-        }
+        // init topics and use the stage models names if there are more than one vehicle in the world
+        vehicle->init_topics(this->use_model_names || (vehicles_.size() > 1));
     }
     clock_pub_ = this->create_publisher<rosgraph_msgs::msg::Clock>("/clock", 10);
 
