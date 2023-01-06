@@ -46,12 +46,17 @@ private:
         class Ranger
         {
         public:
-            Ranger(Stg::ModelRanger *m);
-            void init();
-            void publish();
+            Ranger(Stg::ModelRanger *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
+            void init(bool add_id_to_topic);
+            void publish_msg();
+            void publish_tf();
+
             Stg::ModelRanger *model;
+            std::shared_ptr<Vehicle> vehicle;
+            StageNode *node;
             size_t id;
             std::string topic_name;
+            std::string frame_base;
             std::string frame_id;
             geometry_msgs::msg::TransformStamped transform;
             rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr pub;
@@ -60,10 +65,13 @@ private:
         class Camera
         {
         public:
-            Camera(Stg::ModelCamera *m);
+            Camera(Stg::ModelCamera *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
             void init();
-            void publish();
+            void publish_msg();
+            void publish_tf();
             Stg::ModelCamera *model;
+            std::shared_ptr<Vehicle> vehicle;
+            StageNode *node;
             size_t id;
             std::string topic_name_image;
             std::string topic_name_depth;
@@ -89,6 +97,8 @@ private:
         std::string topic_name_odom_;
         std::string frame_id_odom_;
         std::string frame_id_base_;
+        std::string frame_id_footprint_;
+        nav_msgs::msg::Odometry msg_odom_;
 
     public:
         Vehicle(size_t id, const Stg::Pose &pose, const std::string &name, StageNode *node);
@@ -97,9 +107,10 @@ private:
         size_t id() const;
         const std::string &name() const;
         const std::string &name_space() const;
-        void init_topics(bool use_model_name);
+        void init(bool use_model_name);
         void callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg);
-        void publish_rangers();
+        void publish_msg();
+        void publish_tf();
 
         // stage related models
         Stg::ModelPosition *positionmodel;            // one position

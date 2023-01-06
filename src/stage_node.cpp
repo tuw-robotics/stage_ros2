@@ -140,10 +140,10 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
 
     if (dynamic_cast<Stg::ModelRanger *>(mod))
     {
-        auto ranger = std::make_shared<Vehicle::Ranger>(dynamic_cast<Stg::ModelRanger *>(mod));
-        Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(ranger->model->Parent());
+        Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(mod->Parent());
         for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
             if (parent == vehcile->positionmodel){
+                auto ranger = std::make_shared<Vehicle::Ranger>(dynamic_cast<Stg::ModelRanger *>(mod), vehcile, node);
                 vehcile->rangers.push_back(ranger);
                 ranger->id = vehcile->rangers.size();
             }
@@ -151,10 +151,10 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
     }
     if (dynamic_cast<Stg::ModelCamera *>(mod))
     {
-        auto camera = std::make_shared<Vehicle::Camera>(dynamic_cast<Stg::ModelCamera *>(mod));
-        Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(camera->model->Parent());
+        Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(mod->Parent());
         for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
             if (parent == vehcile->positionmodel){
+                auto camera = std::make_shared<Vehicle::Camera>(dynamic_cast<Stg::ModelCamera *>(mod), vehcile, node);
                 vehcile->cameras.push_back(camera);
                 camera->id = vehcile->cameras.size();
             }
@@ -197,99 +197,15 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
     for (size_t r = 0; r < node->vehicles_.size(); ++r)
     {
         auto robotmodel = node->vehicles_[r];
-
+        robotmodel->publish_msg();
+        robotmodel->publish_tf();
+        
         // loop on the laser devices for the current robot
-        for (size_t s = 0; s < robotmodel->rangers.size(); ++s)
+        for (auto ranger: robotmodel->rangers)
         {
-            Stg::ModelRanger const *lasermodel = robotmodel->rangers[s]->model;
-            const std::vector<Stg::ModelRanger::Sensor> &sensors = lasermodel->GetSensors();
-
-            if (sensors.size() > 1)
-                RCLCPP_WARN(node->get_logger(), "ROS Stage currently supports rangers with 1 sensor only.");
-
-            // for now we access only the zeroth sensor of the ranger - good
-            // enough for most laser models that have a single beam origin
-            const Stg::ModelRanger::Sensor &sensor = sensors[0];
-
-            if (sensor.ranges.size())
-            {
-                // Translate into ROS message format and publish
-                sensor_msgs::msg::LaserScan msg;
-                msg.angle_min = -sensor.fov / 2.0;
-                msg.angle_max = +sensor.fov / 2.0;
-                msg.angle_increment = sensor.fov / (double)(sensor.sample_count - 1);
-                msg.range_min = sensor.range.min;
-                msg.range_max = sensor.range.max;
-                msg.ranges.resize(sensor.ranges.size());
-                msg.intensities.resize(sensor.intensities.size());
-
-                for (unsigned int i = 0; i < sensor.ranges.size(); i++)
-                {
-                    msg.ranges[i] = sensor.ranges[i];
-                    msg.intensities[i] = sensor.intensities[i];
-                }
-
-                if (robotmodel->rangers.size() > 1)
-                    msg.header.frame_id = node->mapName("base_laser_link", r, s, static_cast<Stg::Model *>(robotmodel->positionmodel));
-                else
-                    msg.header.frame_id = node->mapName("base_laser_link", r, static_cast<Stg::Model *>(robotmodel->positionmodel));
-
-                msg.header.stamp = node->sim_time_;
-                robotmodel->rangers[s]->pub->publish(msg);
-            }
-
-            // Also publish the base->base_laser_link Tx.  This could eventually move
-            // into being retrieved from the param server as a static Tx.
-            Stg::Pose lp = lasermodel->GetPose();
-            tf2::Quaternion laserQ;
-            laserQ.setRPY(0.0, 0.0, lp.a);
-            tf2::Transform txLaser = tf2::Transform(laserQ, tf2::Vector3(lp.x, lp.y, robotmodel->positionmodel->GetGeom().size.z + lp.z));
-
-            if (robotmodel->rangers.size() > 1)
-                node->tf_->sendTransform(create_transform_stamped(txLaser, node->sim_time_,
-                                                                  node->mapName("base_link", r, static_cast<Stg::Model *>(robotmodel->positionmodel)),
-                                                                  node->mapName("base_laser_link", r, s, static_cast<Stg::Model *>(robotmodel->positionmodel))));
-            else
-                node->tf_->sendTransform(create_transform_stamped(txLaser, node->sim_time_,
-                                                                  node->mapName("base_link", r, static_cast<Stg::Model *>(robotmodel->positionmodel)),
-                                                                  node->mapName("base_laser_link", r, static_cast<Stg::Model *>(robotmodel->positionmodel))));
+            ranger->publish_msg();
+            ranger->publish_tf();
         }
-
-        // the position of the robot
-        node->tf_->sendTransform(create_transform_stamped(tf2::Transform::getIdentity(),
-                                                          node->sim_time_,
-                                                          node->mapName("base_footprint", r, static_cast<Stg::Model *>(robotmodel->positionmodel)),
-                                                          node->mapName("base_link", r, static_cast<Stg::Model *>(robotmodel->positionmodel))));
-
-        // Get latest odometry data
-        // Translate into ROS message format and publish
-        nav_msgs::msg::Odometry odom_msg;
-        odom_msg.pose.pose.position.x = robotmodel->positionmodel->est_pose.x;
-        odom_msg.pose.pose.position.y = robotmodel->positionmodel->est_pose.y;
-        odom_msg.pose.pose.orientation = createQuaternionMsgFromYaw(robotmodel->positionmodel->est_pose.a);
-        Stg::Velocity v = robotmodel->positionmodel->GetVelocity();
-        odom_msg.twist.twist.linear.x = v.x;
-        odom_msg.twist.twist.linear.y = v.y;
-        odom_msg.twist.twist.angular.z = v.a;
-
-        //@todo Publish stall on a separate topic when one becomes available
-        // node->odomMsgs[r].stall = node->positionmodels[r]->Stall();
-        //
-        odom_msg.header.frame_id = node->mapName("odom", r, static_cast<Stg::Model *>(robotmodel->positionmodel));
-        odom_msg.header.stamp = node->sim_time_;
-
-        robotmodel->odom_pub->publish(odom_msg);
-
-        // broadcast odometry transform
-        tf2::Quaternion odomQ = tf2::Quaternion(
-            odom_msg.pose.pose.orientation.x,
-            odom_msg.pose.pose.orientation.y,
-            odom_msg.pose.pose.orientation.z,
-            odom_msg.pose.pose.orientation.w);
-        tf2::Transform txOdom(odomQ, tf2::Vector3(odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y, 0.0));
-        node->tf_->sendTransform(create_transform_stamped(txOdom, node->sim_time_,
-                                                          node->mapName("odom", r, static_cast<Stg::Model *>(robotmodel->positionmodel)),
-                                                          node->mapName("base_footprint", r, static_cast<Stg::Model *>(robotmodel->positionmodel))));
 
         // Also publish the ground truth pose and velocity
         Stg::Pose gpose = robotmodel->positionmodel->GetGlobalPose();
@@ -563,7 +479,7 @@ int StageNode::SubscribeModels()
     for (std::shared_ptr<Vehicle> vehicle: this->vehicles_)
     {
         // init topics and use the stage models names if there are more than one vehicle in the world
-        vehicle->init_topics(this->use_model_names || (vehicles_.size() > 1));
+        vehicle->init(this->use_model_names || (vehicles_.size() > 1));
     }
 
     // create the clock publisher
