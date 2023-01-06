@@ -51,7 +51,6 @@ define qrcodereader fiducial
   )
 )
 
-# throw in a robot
 define pioneer2dx_with_laser pioneer2dx_no_sonar 
 (
   # can refer to the robot by this name
@@ -65,11 +64,32 @@ define pioneer2dx_with_laser pioneer2dx_no_sonar
   )
 )
 
-# throw in a robot
 define pioneer2dx_with_laser_and_camera pioneer2dx_with_laser 
 (
   # can refer to the robot by this name
   camera_realsens_d435(pose [ 0 0 0.5 0 ])
   mount( pose [ 0 -0.15 0 0.000 ] color "gray")
   mount( pose [ 0  0.15 0 0.000 ] color "gray")
+)
+
+
+define pioneer2dx_with_two_laser pioneer2dx_no_sonar 
+(
+  # can refer to the robot by this name
+  hokuyolaser(pose [ 0.15 0.15 0 45 ])
+  model
+  (
+    # generic model properties
+    pose [ -0.1 0.0 0 0 ]
+    size [ 0.2 0.2 0.05 ]  
+    color "DimGray"
+  )  
+  hokuyolaser(pose [ -0.20 -0.15 0 -135 ])
+  model
+  (
+    # generic model properties
+    pose [ -0.1 0.0 0 0.0 ]
+    size [ 0.2 0.2 0.05 ]  
+    color "DimGray"
+  )
 )

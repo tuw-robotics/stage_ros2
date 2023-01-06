@@ -140,22 +140,23 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
 
     if (dynamic_cast<Stg::ModelRanger *>(mod))
     {
-        Stg::ModelRanger *ranger = dynamic_cast<Stg::ModelRanger *>(mod);
-        Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(ranger->Parent());
+        auto ranger = std::make_shared<Vehicle::Ranger>(dynamic_cast<Stg::ModelRanger *>(mod));
+        Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(ranger->model->Parent());
         for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
             if (parent == vehcile->positionmodel){
                 vehcile->rangers.push_back(ranger);
+                ranger->id = vehcile->rangers.size();
             }
         }
-
     }
     if (dynamic_cast<Stg::ModelCamera *>(mod))
     {
-        Stg::ModelCamera *camera = dynamic_cast<Stg::ModelCamera *>(mod);
-        Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(camera->Parent());
+        auto camera = std::make_shared<Vehicle::Camera>(dynamic_cast<Stg::ModelCamera *>(mod));
+        Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(camera->model->Parent());
         for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
             if (parent == vehcile->positionmodel){
                 vehcile->cameras.push_back(camera);
+                camera->id = vehcile->cameras.size();
             }
         }
     }
@@ -200,7 +201,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
         // loop on the laser devices for the current robot
         for (size_t s = 0; s < robotmodel->rangers.size(); ++s)
         {
-            Stg::ModelRanger const *lasermodel = robotmodel->rangers[s];
+            Stg::ModelRanger const *lasermodel = robotmodel->rangers[s]->model;
             const std::vector<Stg::ModelRanger::Sensor> &sensors = lasermodel->GetSensors();
 
             if (sensors.size() > 1)
@@ -234,7 +235,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
                     msg.header.frame_id = node->mapName("base_laser_link", r, static_cast<Stg::Model *>(robotmodel->positionmodel));
 
                 msg.header.stamp = node->sim_time_;
-                robotmodel->laser_pubs[s]->publish(msg);
+                robotmodel->rangers[s]->pub->publish(msg);
             }
 
             // Also publish the base->base_laser_link Tx.  This could eventually move
@@ -333,7 +334,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
         // cameras
         for (size_t s = 0; s < robotmodel->cameras.size(); ++s)
         {
-            Stg::ModelCamera *cameramodel = robotmodel->cameras[s];
+            Stg::ModelCamera *cameramodel = robotmodel->cameras[s]->model;
             // Get latest image data
             // Translate into ROS message format and publish
             if (cameramodel->FrameColor())
@@ -367,7 +368,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
                     image_msg.header.frame_id = node->mapName("camera", r, static_cast<Stg::Model *>(robotmodel->positionmodel));
                 image_msg.header.stamp = node->sim_time_;
 
-                robotmodel->image_pubs[s]->publish(image_msg);
+                robotmodel->cameras[s]->pub_image->publish(image_msg);
             }
 
             // Get latest depth data
@@ -428,7 +429,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
                 else
                     depth_msg.header.frame_id = node->mapName("camera", r, static_cast<Stg::Model *>(robotmodel->positionmodel));
                 depth_msg.header.stamp = node->sim_time_;
-                robotmodel->depth_pubs[s]->publish(depth_msg);
+                robotmodel->cameras[s]->pub_depth->publish(depth_msg);
             }
 
             // sending camera's tf and info only if image or depth topics are subscribed to
@@ -492,7 +493,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
                 camera_msg.p[6] = cy;
                 camera_msg.p[10] = 1.0;
 
-                robotmodel->camera_pubs[s]->publish(camera_msg);
+                robotmodel->cameras[s]->pub_camera->publish(camera_msg);
             }
         }
     }
@@ -561,31 +562,11 @@ int StageNode::SubscribeModels()
 
     for (std::shared_ptr<Vehicle> vehicle: this->vehicles_)
     {
-        vehicle->positionmodel->Subscribe();
-
-        RCLCPP_INFO(this->get_logger(), "Subscribed to Stage position model \"%s\"", vehicle->positionmodel->Token());
-
-        for (size_t s = 0; s < vehicle->rangers.size(); s++)
-        {
-            vehicle->rangers[s]->Subscribe();
-            RCLCPP_INFO(this->get_logger(), "subscribed to Stage ranger \"%s\"", vehicle->rangers[s]->Token());
-        }
-
-        for (size_t s = 0; s < vehicle->cameras.size(); s++)
-        {
-            vehicle->cameras[s]->Subscribe();
-            RCLCPP_INFO(this->get_logger(), "subscribed to Stage camera model \"%s\"", vehicle->cameras[s]->Token());
-        }
-
-        // TODO - print the topic names nicely as well
-        RCLCPP_INFO(this->get_logger(), "Robot %s provided %lu rangers and %lu cameras",
-                    vehicle->positionmodel->Token(),
-                    vehicle->rangers.size(),
-                    vehicle->cameras.size());
-
         // init topics and use the stage models names if there are more than one vehicle in the world
         vehicle->init_topics(this->use_model_names || (vehicles_.size() > 1));
     }
+
+    // create the clock publisher
     clock_pub_ = this->create_publisher<rosgraph_msgs::msg::Clock>("/clock", 10);
 
     // advertising reset service

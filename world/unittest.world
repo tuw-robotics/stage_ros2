@@ -84,3 +84,12 @@ pioneer2dx_with_laser_and_camera
   color "GreenYellow" 
   pose [ -5 -4 0 225 ] 
 )
+
+# throw in a robot
+pioneer2dx_with_two_laser 
+(
+  # can refer to the robot by this name
+  name "robot_2"
+  color "GreenBlue" 
+  pose [ -5 -6 0 225 ] 
+)

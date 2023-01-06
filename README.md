@@ -18,3 +18,9 @@ cd YOUR_ROS2_WORKSPACE
 cd src/stage_ros2/world
 run stage_ros2 stage_ros2  --ros-args --ros-args -p world_file:=line.world 
 ```
+
+SoftReset
+
+```
+ros2 service call /reset_positions std_srvs/srv/Empty
+```
