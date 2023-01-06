@@ -46,18 +46,23 @@ private:
         class Ranger
         {
         public:
-            Ranger(Stg::ModelRanger *m) : model(m){};
+            Ranger(Stg::ModelRanger *m);
+            void init();
+            void publish();
             Stg::ModelRanger *model;
             size_t id;
             std::string topic_name;
             std::string frame_id;
             geometry_msgs::msg::TransformStamped transform;
             rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr pub;
+            sensor_msgs::msg::LaserScan msg;
         };
         class Camera
         {
         public:
-            Camera(Stg::ModelCamera *m) : model(m){};
+            Camera(Stg::ModelCamera *m);
+            void init();
+            void publish();
             Stg::ModelCamera *model;
             size_t id;
             std::string topic_name_image;

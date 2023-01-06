@@ -28,7 +28,7 @@ include_directories(
 )
 
 add_library(stage_node SHARED
-            src/stage_node.cpp src/stage_vehicle.cpp)
+            src/stage_node.cpp src/vehicle.cpp src/ranger.cpp src/camera.cpp)
 target_compile_definitions(stage_node
   PRIVATE "STAGE_ROS2_PACKAGE_DLL")
 ament_target_dependencies(stage_node rclcpp rclcpp_components 
