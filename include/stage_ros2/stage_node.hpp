@@ -66,7 +66,7 @@ private:
         {
         public:
             Camera(Stg::ModelCamera *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
-            void init();
+            void init(bool add_id_to_topic);
             void publish_msg();
             void publish_tf();
             Stg::ModelCamera *model;

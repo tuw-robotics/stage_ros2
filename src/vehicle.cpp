@@ -4,9 +4,6 @@
 #include <memory>
 #include <filesystem>
 
-#define IMAGE "image"
-#define DEPTH "depth"
-#define CAMERA_INFO "camera_info"
 #define ODOM "odom"
 #define FRAME_BASE  "base"
 #define FRAME_FOOTPRINT "footprint"
@@ -57,22 +54,7 @@ void StageNode::Vehicle::init(bool use_model_name)
 
     for (std::shared_ptr<Camera> camera: cameras)
     {
-        camera->model->Subscribe();
-        if (cameras.size() == 1)
-        {
-            camera->topic_name_image = name_space_ + IMAGE;
-            camera->topic_name_camera_info = name_space_ + CAMERA_INFO;
-            camera->topic_name_depth = name_space_ + DEPTH;
-        }
-        else
-        {
-            camera->topic_name_image = name_space_ + IMAGE + std::to_string(camera->id);
-            camera->topic_name_camera_info = name_space_ + CAMERA_INFO + std::to_string(camera->id);
-            camera->topic_name_depth = name_space_ + DEPTH + std::to_string(camera->id);
-        }
-        camera->pub_image = node_->create_publisher<sensor_msgs::msg::Image>(camera->topic_name_image, 10);
-        camera->pub_camera = node_->create_publisher<sensor_msgs::msg::CameraInfo>(camera->topic_name_camera_info, 10);
-        camera->pub_depth = node_->create_publisher<sensor_msgs::msg::Image>(camera->topic_name_depth, 10);
+        camera->init(rangers.size() > 1);
     }
 }
 
