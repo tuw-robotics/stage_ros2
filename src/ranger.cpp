@@ -15,16 +15,14 @@ StageNode::Vehicle::Ranger::Ranger(Stg::ModelRanger *m, std::shared_ptr<Vehicle>
 void StageNode::Vehicle::Ranger::init(bool add_id_to_topic)
 {
     model->Subscribe();
+    topic_name = vehicle->name_space_ + TOPIC_LASER;
+    frame_id = vehicle->name_space_ + FRAME_LASER;
     if (add_id_to_topic)
     {
-        topic_name = vehicle->name_space_ + TOPIC_LASER + std::to_string(id);
-        frame_id = vehicle->name_space_ + FRAME_LASER + std::to_string(id);
+        topic_name += std::to_string(id);
+        frame_id += std::to_string(id);
     }
-    else
-    {
-        topic_name = vehicle->name_space_ + TOPIC_LASER;
-        frame_id = vehicle->name_space_ + FRAME_LASER;
-    }
+
     pub = node->create_publisher<sensor_msgs::msg::LaserScan>(topic_name, 10);
 }
 

@@ -95,10 +95,12 @@ private:
         std::string topic_name_cmd_;
 
         std::string topic_name_odom_;
+        std::string topic_name_ground_truth_;
         std::string frame_id_odom_;
         std::string frame_id_base_;
         std::string frame_id_footprint_;
         nav_msgs::msg::Odometry msg_odom_;
+        std::shared_ptr<Stg::Pose> global_pose_;
 
     public:
         Vehicle(size_t id, const Stg::Pose &pose, const std::string &name, StageNode *node);
@@ -143,11 +145,6 @@ private:
     static int ghfunc(Stg::Model *mod, StageNode *node);
 
     static int s_update(Stg::World *world, StageNode *node);
-
-    // Appends the given robot ID to the given message name.  If omitRobotID
-    // is true, an unaltered copy of the name is returned.
-    const char *mapName(const char *name, size_t robotID, Stg::Model *mod) const;
-    const char *mapName(const char *name, size_t robotID, size_t deviceID, Stg::Model *mod) const;
 
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_;
 
