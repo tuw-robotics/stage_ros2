@@ -9,9 +9,13 @@
 
 using std::placeholders::_1;
 
-StageNode::Vehicle::Ranger::Ranger(Stg::ModelRanger *m, std::shared_ptr<Vehicle> &v, StageNode *n)
-    : model(m), vehicle(v), node(n){};
+StageNode::Vehicle::Ranger::Ranger(unsigned int id, Stg::ModelRanger *m, std::shared_ptr<Vehicle> &v, StageNode *n)
+    : id_(id), model(m), vehicle(v), node(n){};
 
+unsigned int StageNode::Vehicle::Ranger::id() const
+{
+    return id_;
+}
 void StageNode::Vehicle::Ranger::init(bool add_id_to_topic)
 {
     model->Subscribe();
@@ -19,8 +23,8 @@ void StageNode::Vehicle::Ranger::init(bool add_id_to_topic)
     frame_id = vehicle->name_space_ + FRAME_LASER;
     if (add_id_to_topic)
     {
-        topic_name += std::to_string(id);
-        frame_id += std::to_string(id);
+        topic_name += std::to_string(id());
+        frame_id += std::to_string(id());
     }
 
     pub = node->create_publisher<sensor_msgs::msg::LaserScan>(topic_name, 10);

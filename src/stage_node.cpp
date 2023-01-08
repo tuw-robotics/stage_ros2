@@ -79,9 +79,8 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
         Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(mod->Parent());
         for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
             if (parent == vehcile->positionmodel){
-                auto ranger = std::make_shared<Vehicle::Ranger>(dynamic_cast<Stg::ModelRanger *>(mod), vehcile, node);
+                auto ranger = std::make_shared<Vehicle::Ranger>(vehcile->rangers.size()+1, dynamic_cast<Stg::ModelRanger *>(mod), vehcile, node);
                 vehcile->rangers.push_back(ranger);
-                ranger->id = vehcile->rangers.size();
             }
         }
     }
@@ -90,9 +89,8 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
         Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(mod->Parent());
         for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
             if (parent == vehcile->positionmodel){
-                auto camera = std::make_shared<Vehicle::Camera>(dynamic_cast<Stg::ModelCamera *>(mod), vehcile, node);
+                auto camera = std::make_shared<Vehicle::Camera>(vehcile->cameras.size()+1, dynamic_cast<Stg::ModelCamera *>(mod), vehcile, node);
                 vehcile->cameras.push_back(camera);
-                camera->id = vehcile->cameras.size();
             }
         }
     }

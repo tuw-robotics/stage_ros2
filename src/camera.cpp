@@ -11,8 +11,14 @@
 
 using std::placeholders::_1;
 
-StageNode::Vehicle::Camera::Camera(Stg::ModelCamera *m, std::shared_ptr<Vehicle> &v, StageNode *n)
-    : model(m), vehicle(v), node(n){};
+StageNode::Vehicle::Camera::Camera(unsigned int id, Stg::ModelCamera *m, std::shared_ptr<Vehicle> &v, StageNode *n)
+    : id_(id), model(m), vehicle(v), node(n){};
+
+unsigned int StageNode::Vehicle::Camera::id() const
+{
+    return id_;
+}
+
 void StageNode::Vehicle::Camera::init(bool add_id_to_topic)
 {
     model->Subscribe();
@@ -23,10 +29,10 @@ void StageNode::Vehicle::Camera::init(bool add_id_to_topic)
 
     if (add_id_to_topic)
     {
-        topic_name_image += std::to_string(id);
-        topic_name_camera_info += std::to_string(id);
-        topic_name_depth += std::to_string(id);
-        frame_id += std::to_string(id);
+        topic_name_image += std::to_string(id());
+        topic_name_camera_info += std::to_string(id());
+        topic_name_depth += std::to_string(id());
+        frame_id += std::to_string(id());
     }
 
     pub_image = node->create_publisher<sensor_msgs::msg::Image>(topic_name_image, 10);

@@ -45,34 +45,36 @@ private:
     public:
         class Ranger
         {
-        public:
-            Ranger(Stg::ModelRanger *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
-            void init(bool add_id_to_topic);
-            void publish_msg();
-            void publish_tf();
 
             Stg::ModelRanger *model;
             std::shared_ptr<Vehicle> vehicle;
             StageNode *node;
-            size_t id;
+            size_t id_;
             std::string topic_name;
             std::string frame_base;
             std::string frame_id;
             geometry_msgs::msg::TransformStamped transform;
             rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr pub;
             sensor_msgs::msg::LaserScan msg;
+        public:
+            Ranger(unsigned int id, Stg::ModelRanger *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
+            void init(bool add_id_to_topic);
+            unsigned int id() const;
+            void publish_msg();
+            void publish_tf();
         };
         class Camera
         {
-        public:
-            Camera(Stg::ModelCamera *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
-            void init(bool add_id_to_topic);
-            void publish_msg();
-            void publish_tf();
             Stg::ModelCamera *model;
             std::shared_ptr<Vehicle> vehicle;
             StageNode *node;
-            size_t id;
+            size_t id_;
+        public:
+            Camera(unsigned int id, Stg::ModelCamera *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
+            void init(bool add_id_to_topic);
+            unsigned int id() const;
+            void publish_msg();
+            void publish_tf();
             std::string topic_name_image;
             std::string topic_name_depth;
             std::string topic_name_camera_info;

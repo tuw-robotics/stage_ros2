@@ -4,12 +4,12 @@
 #include <memory>
 #include <filesystem>
 
-#define ODOM "odom"
+#define TOPIC_ODOM "odom"
+#define TOPIC_GROUND_TRUTH "ground_truth"
+#define TOPIC_CMD_VEL "cmd_vel"
 #define FRAME_BASE  "base"
 #define FRAME_FOOTPRINT "footprint"
 #define FRAME_ODOM "odom"
-#define GROUND_TRUTH "ground_truth"
-#define CMD_VEL "cmd_vel"
 
 using std::placeholders::_1;
 
@@ -41,9 +41,9 @@ void StageNode::Vehicle::init(bool use_model_name)
     frame_id_odom_ = name_space_ + FRAME_ODOM;
     frame_id_footprint_ = name_space_ + FRAME_FOOTPRINT;
 
-    topic_name_odom_ = name_space_ + ODOM;
-    topic_name_ground_truth_ = name_space_ + GROUND_TRUTH;
-    topic_name_cmd_ = name_space_ + CMD_VEL;
+    topic_name_odom_ = name_space_ + TOPIC_ODOM;
+    topic_name_ground_truth_ = name_space_ + TOPIC_GROUND_TRUTH;
+    topic_name_cmd_ = name_space_ + TOPIC_CMD_VEL;
 
     odom_pub = node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_odom_, 10);
     ground_truth_pub = node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_ground_truth_, 10);
