@@ -24,6 +24,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -46,16 +47,18 @@ private:
         class Ranger
         {
 
+            size_t id_;
             Stg::ModelRanger *model;
             std::shared_ptr<Vehicle> vehicle;
             StageNode *node;
-            size_t id_;
             std::string topic_name;
             std::string frame_base;
             std::string frame_id;
-            geometry_msgs::msg::TransformStamped transform;
+            geometry_msgs::msg::TransformStamped::SharedPtr transform;
             rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr pub;
-            sensor_msgs::msg::LaserScan msg;
+            sensor_msgs::msg::LaserScan::SharedPtr msg;
+            bool prepare_msg();
+            bool prepare_tf();
         public:
             Ranger(unsigned int id, Stg::ModelRanger *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
             void init(bool add_id_to_topic);
@@ -65,10 +68,10 @@ private:
         };
         class Camera
         {
+            size_t id_;
             Stg::ModelCamera *model;
             std::shared_ptr<Vehicle> vehicle;
             StageNode *node;
-            size_t id_;
         public:
             Camera(unsigned int id, Stg::ModelCamera *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
             void init(bool add_id_to_topic);
@@ -124,9 +127,9 @@ private:
         // ros publishers
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub;         // one odom
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ground_truth_pub; // one ground truth
-
-
         rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmdvel_sub; // one cmd_vel subscriber
+
+        std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
     };
 
     std::vector<std::shared_ptr<Vehicle>> vehicles_;

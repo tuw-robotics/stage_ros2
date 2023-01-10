@@ -30,46 +30,68 @@ void StageNode::Vehicle::Ranger::init(bool add_id_to_topic)
     pub = node->create_publisher<sensor_msgs::msg::LaserScan>(topic_name, 10);
 }
 
-void StageNode::Vehicle::Ranger::publish_msg()
+bool StageNode::Vehicle::Ranger::prepare_msg()
 {
-    const std::vector<Stg::ModelRanger::Sensor> &sensors = model->GetSensors();
+    if(msg) return true;
+    if (model->GetSensors().size() > 1) RCLCPP_WARN(node->get_logger(), "ROS Stage currently supports rangers with 1 sensor only.");
+    const Stg::ModelRanger::Sensor &sensor = model->GetSensors()[0]; // we use the first sensor data
+    if (sensor.ranges.size() == 0) return false;
+  
+    msg = std::make_shared<sensor_msgs::msg::LaserScan>();
+    msg->angle_min = -sensor.fov / 2.0;
+    msg->angle_max = +sensor.fov / 2.0;
+    msg->angle_increment = sensor.fov / (double)(sensor.sample_count - 1);
+    msg->range_min = sensor.range.min;
+    msg->range_max = sensor.range.max;
+    msg->ranges.resize(sensor.ranges.size());
+    msg->intensities.resize(sensor.intensities.size());
+    msg->header.frame_id = frame_id;
 
-    if (sensors.size() > 1)
-        RCLCPP_WARN(node->get_logger(), "ROS Stage currently supports rangers with 1 sensor only.");
-
-    // for now we access only the zeroth sensor of the ranger - good
-    // enough for most laser models that have a single beam origin
-    const Stg::ModelRanger::Sensor &sensor = sensors[0];
-
-    if (sensor.ranges.size())
-    {
-        msg.angle_min = -sensor.fov / 2.0;
-        msg.angle_max = +sensor.fov / 2.0;
-        msg.angle_increment = sensor.fov / (double)(sensor.sample_count - 1);
-        msg.range_min = sensor.range.min;
-        msg.range_max = sensor.range.max;
-        msg.ranges.resize(sensor.ranges.size());
-        msg.intensities.resize(sensor.intensities.size());
-        msg.header.frame_id = frame_id;
-    }
-
-    msg.header.stamp = node->sim_time_;
-    for (unsigned int i = 0; i < sensor.ranges.size(); i++)
-    {
-        msg.ranges[i] = sensor.ranges[i];
-        msg.intensities[i] = sensor.intensities[i];
-    }
-    pub->publish(msg);
+    return true;
 }
 
-void StageNode::Vehicle::Ranger::publish_tf()
+bool StageNode::Vehicle::Ranger::prepare_tf()
 {
-    // Also publish the base->base_laser_link Tf.  This could eventually move
-    // into being retrieved from the param server as a static Tx.
+    if(transform) return true;
+
+    transform = std::make_shared<geometry_msgs::msg::TransformStamped>();
+
     Stg::Pose pose = model->GetPose();
     tf2::Quaternion quternion;
     quternion.setRPY(0.0, 0.0, pose.a);
     tf2::Transform txLaser = tf2::Transform(quternion, tf2::Vector3(pose.x, pose.y, vehicle->positionmodel->GetGeom().size.z + pose.z));
-    transform = create_transform_stamped(txLaser, node->sim_time_, vehicle->frame_id_base_, frame_id);
-    node->tf_->sendTransform(transform);
+    *transform = create_transform_stamped(txLaser, node->sim_time_, vehicle->frame_id_base_, frame_id);
+    vehicle->tf_static_broadcaster_->sendTransform(*transform);
+    return true;
+}
+
+void StageNode::Vehicle::Ranger::publish_msg()
+{
+    if (model->GetSensors().size() > 1)
+        RCLCPP_WARN(node->get_logger(), "ROS Stage currently supports rangers with 1 sensor only.");
+
+    // for now we access only the zeroth sensor of the ranger - good
+    // enough for most laser models that have a single beam origin
+    const Stg::ModelRanger::Sensor &sensor = model->GetSensors()[0]; // we use the first sensor data
+    
+    if(prepare_msg()){
+        msg->header.stamp = node->sim_time_;
+        for (unsigned int i = 0; i < sensor.ranges.size(); i++)
+        {
+            msg->ranges[i] = sensor.ranges[i];
+            msg->intensities[i] = sensor.intensities[i];
+        }
+        pub->publish(*msg);
+    }
+}
+
+void StageNode::Vehicle::Ranger::publish_tf()
+{
+    
+    // Also publish the base->base_laser_link Tf.  This could eventually move
+    // into being retrieved from the param server as a static Tx.
+    if(prepare_tf()){
+        transform->header.stamp = node->sim_time_;
+        //node->tf_->sendTransform(*transform);
+    }
 }
