@@ -17,6 +17,7 @@ StageNode::Vehicle::Vehicle(size_t id, const Stg::Pose &pose, const std::string 
     : id_(id), initial_pose_(pose), name_(name), node_(node)
 {
     tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node_);
+    tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
 }
 
 size_t StageNode::Vehicle::id() const

@@ -8,14 +8,14 @@ StageNode::StageNode(rclcpp::NodeOptions options)
     : Node("stage_ros2", options), base_watchdog_timeout_(0, 0)
 {
     tf_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
-    init_parameter();
+    declare_parameters();
 }
 
 StageNode::~StageNode()
 {
 }
 
-void StageNode::init_parameter()
+void StageNode::declare_parameters()
 {
     this->set_parameter(rclcpp::Parameter("use_sim_time", true));
     auto param_desc_enable_gui = rcl_interfaces::msg::ParameterDescriptor{};
@@ -25,6 +25,10 @@ void StageNode::init_parameter()
     auto param_desc_model_names = rcl_interfaces::msg::ParameterDescriptor{};
     param_desc_model_names.description = "USE model name as name space prefix! True on more than one vehicle!";
     this->declare_parameter<bool>("use_model_names", false, param_desc_model_names);
+
+    auto param_desc_use_static_transformations_ = rcl_interfaces::msg::ParameterDescriptor{};
+    param_desc_use_static_transformations_.description = "use static transformations for sensor frames!";
+    this->declare_parameter<bool>("use_static_transformations", false, param_desc_use_static_transformations_);
 
     auto param_desc_watchdog_timeout = rcl_interfaces::msg::ParameterDescriptor{};
     param_desc_watchdog_timeout.description = "timeout after which a vehicle stopps if no command is received!";
@@ -42,21 +46,43 @@ void StageNode::init_parameter()
     param_desc_world_file.description = "USE model names!";
     this->declare_parameter<std::string>("world_file", "cave.world", param_desc_world_file);
 
-    callback_update_parameter();
-
-    using namespace std::chrono_literals;
-    timer_update_parameter_ = this->create_wall_timer(1000ms, std::bind(&StageNode::callback_update_parameter, this));
 }
 
-void StageNode::callback_update_parameter()
+void StageNode::update_parameters(){
+    double base_watchdog_timeout_sec{5.0};
+    this->get_parameter("enable_gui", this->enable_gui_);
+    this->get_parameter("use_model_names", this->use_model_names);
+    this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
+    this->base_watchdog_timeout_ = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
+    this->get_parameter("is_depth_canonical", this->isDepthCanonical_);
+    this->get_parameter("publish_ground_truth", this->publish_ground_truth_);
+
+    this->get_parameter("world_file", this->world_file_);
+    if (!std::filesystem::exists(this->world_file_))
+    {
+        RCLCPP_FATAL(this->get_logger(), "The world file %s does not exist.", this->world_file_.c_str());
+        exit(0);
+    }
+
+    callback_update_parameters();
+
+    using namespace std::chrono_literals;
+    timer_update_parameter_ = this->create_wall_timer(1000ms, std::bind(&StageNode::callback_update_parameters, this));
+}
+
+void StageNode::callback_update_parameters()
 {
     double base_watchdog_timeout_sec{0.2};
     this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
     this->base_watchdog_timeout_ = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
 
+    bool use_static_transformations_{true};
+    this->get_parameter("use_static_transformations", use_static_transformations_);
+
     this->get_parameter("publish_ground_truth", this->publish_ground_truth_);
     RCLCPP_INFO(this->get_logger(), "callback_update_parameter");
 }
+
 /**
  * Is called only ones after the simulation starts with each model
  * The function fills the vehicle vector with pointers to the stage models
@@ -166,23 +192,11 @@ bool StageNode::cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr, std
 
 void StageNode::init(int argc, char **argv)
 {
-    double base_watchdog_timeout_sec{5.0};
-    this->get_parameter("enable_gui", this->enable_gui_);
-    this->get_parameter("use_model_names", this->use_model_names);
-    this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
-    this->base_watchdog_timeout_ = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
-    this->get_parameter("is_depth_canonical", this->isDepthCanonical_);
-    this->get_parameter("world_file", this->world_file_);
-    this->get_parameter("publish_ground_truth", this->publish_ground_truth_);
 
     this->sim_time_ = rclcpp::Time(0, 0);
     this->base_last_cmd_ = rclcpp::Time(0, 0);
+    update_parameters();
 
-    if (!std::filesystem::exists(world_file_))
-    {
-        RCLCPP_FATAL(this->get_logger(), "The world file %s does not exist.", this->world_file_.c_str());
-        exit(0);
-    }
 
     // initialize libstage
     Stg::Init(&argc, &argv);

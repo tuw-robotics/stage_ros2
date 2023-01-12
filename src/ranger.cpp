@@ -61,7 +61,7 @@ bool StageNode::Vehicle::Ranger::prepare_tf()
     quternion.setRPY(0.0, 0.0, pose.a);
     tf2::Transform txLaser = tf2::Transform(quternion, tf2::Vector3(pose.x, pose.y, vehicle->positionmodel->GetGeom().size.z + pose.z));
     *transform = create_transform_stamped(txLaser, node->sim_time_, vehicle->frame_id_base_, frame_id);
-    vehicle->tf_static_broadcaster_->sendTransform(*transform);
+    if(node->use_static_transformations_) vehicle->tf_static_broadcaster_->sendTransform(*transform);
     return true;
 }
 
@@ -87,11 +87,12 @@ void StageNode::Vehicle::Ranger::publish_msg()
 
 void StageNode::Vehicle::Ranger::publish_tf()
 {
-    
-    // Also publish the base->base_laser_link Tf.  This could eventually move
-    // into being retrieved from the param server as a static Tx.
     if(prepare_tf()){
+
+        if(node->use_static_transformations_) return;
+
+        // use tf publsiher only if use_static_transformations_ is false
         transform->header.stamp = node->sim_time_;
-        //node->tf_->sendTransform(*transform);
+        vehicle->tf_broadcaster_->sendTransform(*transform);
     }
 }

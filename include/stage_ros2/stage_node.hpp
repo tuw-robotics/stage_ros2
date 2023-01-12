@@ -130,6 +130,7 @@ private:
         rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmdvel_sub; // one cmd_vel subscriber
 
         std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
+        std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     };
 
     std::vector<std::shared_ptr<Vehicle>> vehicles_;
@@ -139,11 +140,12 @@ private:
 
     rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_pub_;
 
-    bool isDepthCanonical_;
-    bool use_model_names;
-    bool enable_gui_;
-    bool publish_ground_truth_;
-    std::string world_file_;
+    bool isDepthCanonical_;           /// ROS parameter
+    bool use_model_names;             /// ROS parameter 
+    bool enable_gui_;                 /// ROS parameter
+    bool publish_ground_truth_;       /// ROS parameter
+    bool use_static_transformations_; /// ROS parameter
+    std::string world_file_;          /// ROS parameter
 
     // A helper function that is executed for each stage model.  We use it
     // to search for models of interest.
@@ -167,11 +169,14 @@ public:
     // Constructor
     void init(int argc, char **argv);
 
-    // initialzes and declares ros parameters
-    void init_parameter();
+    // declares ros parameters
+    void declare_parameters();
 
+    // int ros parameters for the startup
+    void update_parameters();
+    
     // callback to check changes on the parameters
-    void callback_update_parameter();
+    void callback_update_parameters();
 
     // timer to check regulary for parameter changes
     rclcpp::TimerBase::SharedPtr timer_update_parameter_;
@@ -197,6 +202,8 @@ public:
 
     // Current simulation time
     rclcpp::Time sim_time_;
+private:
+
 };
 
 #endif // STAGE_ROS2_PKG__STAGE_ROS_HPP_
