@@ -46,6 +46,17 @@ void StageNode::declare_parameters()
     param_desc_world_file.description = "USE model names!";
     this->declare_parameter<std::string>("world_file", "cave.world", param_desc_world_file);
 
+    auto param_desc_frame_id_odom_name_ = rcl_interfaces::msg::ParameterDescriptor{};
+    param_desc_frame_id_odom_name_.description = "odom frame name or postfix in case of multiple robots";
+    this->declare_parameter<std::string>("frame_id_odom", "odom", param_desc_frame_id_odom_name_);
+
+    auto param_desc_frame_id_world_name_ = rcl_interfaces::msg::ParameterDescriptor{};
+    param_desc_frame_id_world_name_.description = "world frame name for ground truth odom data";
+    this->declare_parameter<std::string>("frame_id_world", "world", param_desc_frame_id_world_name_);
+
+    auto param_desc_frame_id_base_link_name_ = rcl_interfaces::msg::ParameterDescriptor{};
+    param_desc_frame_id_base_link_name_.description = "base link frame name or postfix in case of multiple robots";
+    this->declare_parameter<std::string>("frame_id_base_link", "base_link", param_desc_frame_id_base_link_name_);
 }
 
 void StageNode::update_parameters(){
@@ -56,6 +67,9 @@ void StageNode::update_parameters(){
     this->base_watchdog_timeout_ = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
     this->get_parameter("is_depth_canonical", this->isDepthCanonical_);
     this->get_parameter("publish_ground_truth", this->publish_ground_truth_);
+    this->get_parameter("frame_id_odom", this->frame_id_odom_name_);
+    this->get_parameter("frame_id_world", this->frame_id_world_name_);
+    this->get_parameter("frame_id_base_link", this->frame_id_base_link_name_);
 
     this->get_parameter("world_file", this->world_file_);
     if (!std::filesystem::exists(this->world_file_))

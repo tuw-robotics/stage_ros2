@@ -219,29 +219,23 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        robot_0/base:
+        robot_0/base_link:
           Value: true
         robot_0/camera:
-          Value: true
-        robot_0/footprint:
           Value: true
         robot_0/laser:
           Value: true
         robot_0/odom:
           Value: true
-        robot_1/base:
+        robot_1/base_link:
           Value: true
         robot_1/camera:
-          Value: true
-        robot_1/footprint:
           Value: true
         robot_1/laser:
           Value: true
         robot_1/odom:
           Value: true
-        robot_2/base:
-          Value: true
-        robot_2/footprint:
+        robot_2/base_link:
           Value: true
         robot_2/laser1:
           Value: true
@@ -256,18 +250,17 @@ Visualization Manager:
       Show Names: true
       Tree:
         robot_0/odom:
-          robot_0/footprint:
-            robot_0/base:
-              robot_0/camera:
-                {}
-              robot_0/laser:
-                {}
+          robot_0/base_link:
+            robot_0/camera:
+              {}
+            robot_0/laser:
+              {}
       Update Interval: 0
       Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: robot_0/base
+    Fixed Frame: robot_0/base_link
     Frame Rate: 30
   Name: root
   Tools:

@@ -72,6 +72,13 @@ private:
             Stg::ModelCamera *model;
             std::shared_ptr<Vehicle> vehicle;
             StageNode *node;
+            geometry_msgs::msg::TransformStamped::SharedPtr transform;
+            rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image;       // multiple images
+            sensor_msgs::msg::Image::SharedPtr msg_image;
+            rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_depth;       // multiple depths
+            rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr pub_camera; // multiple cameras
+            bool prepare_msg();
+            bool prepare_tf();
         public:
             Camera(unsigned int id, Stg::ModelCamera *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
             void init(bool add_id_to_topic);
@@ -82,10 +89,6 @@ private:
             std::string topic_name_depth;
             std::string topic_name_camera_info;
             std::string frame_id;
-            geometry_msgs::msg::TransformStamped transform;
-            rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image;       // multiple images
-            rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_depth;       // multiple depths
-            rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr pub_camera; // multiple cameras
         };
 
     private:
@@ -102,8 +105,8 @@ private:
         std::string topic_name_odom_;
         std::string topic_name_ground_truth_;
         std::string frame_id_odom_;
-        std::string frame_id_base_;
-        std::string frame_id_footprint_;
+        std::string frame_id_world_;
+        std::string frame_id_base_link_;
         nav_msgs::msg::Odometry msg_odom_;
         std::shared_ptr<Stg::Pose> global_pose_;
 
@@ -146,6 +149,9 @@ private:
     bool publish_ground_truth_;       /// ROS parameter
     bool use_static_transformations_; /// ROS parameter
     std::string world_file_;          /// ROS parameter
+    std::string frame_id_odom_name_;  /// ROS parameter
+    std::string frame_id_world_name_; /// ROS parameter
+    std::string frame_id_base_link_name_;  /// ROS parameter
 
     // A helper function that is executed for each stage model.  We use it
     // to search for models of interest.

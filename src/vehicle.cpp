@@ -7,9 +7,6 @@
 #define TOPIC_ODOM "odom"
 #define TOPIC_GROUND_TRUTH "ground_truth"
 #define TOPIC_CMD_VEL "cmd_vel"
-#define FRAME_BASE  "base"
-#define FRAME_FOOTPRINT "footprint"
-#define FRAME_ODOM "odom"
 
 using std::placeholders::_1;
 
@@ -39,9 +36,9 @@ void StageNode::Vehicle::init(bool use_model_name)
 {
     name_space_ = std::string();
     if (use_model_name) name_space_ = name() + "/";
-    frame_id_base_ = name_space_ + FRAME_BASE;
-    frame_id_odom_ = name_space_ + FRAME_ODOM;
-    frame_id_footprint_ = name_space_ + FRAME_FOOTPRINT;
+    frame_id_base_link_ = name_space_ + node_->frame_id_base_link_name_;
+    frame_id_odom_ = name_space_ + node_->frame_id_odom_name_;
+    frame_id_world_ = name_space_ + node_->frame_id_world_name_;
 
     topic_name_odom_ = name_space_ + TOPIC_ODOM;
     topic_name_ground_truth_ = name_space_ + TOPIC_GROUND_TRUTH;
@@ -65,9 +62,9 @@ void StageNode::Vehicle::init(bool use_model_name)
 }
 
 void StageNode::Vehicle::publish_msg(){
+
         // Get latest odometry data
-        // Translate into ROS message format and publish
-        
+        // Translate into ROS message format and publish        
         msg_odom_.pose.pose.position.x = positionmodel->est_pose.x;
         msg_odom_.pose.pose.position.y = positionmodel->est_pose.y;
         msg_odom_.pose.pose.orientation = createQuaternionMsgFromYaw(positionmodel->est_pose.a);
@@ -75,10 +72,6 @@ void StageNode::Vehicle::publish_msg(){
         msg_odom_.twist.twist.linear.x = v.x;
         msg_odom_.twist.twist.linear.y = v.y;
         msg_odom_.twist.twist.angular.z = v.a;
-
-        //@todo Publish stall on a separate topic when one becomes available
-        // node->odomMsgs[r].stall = node->positionmodels[r]->Stall();
-        //
         msg_odom_.header.frame_id = frame_id_odom_;
         msg_odom_.header.stamp = node_->sim_time_;
 
@@ -119,7 +112,7 @@ void StageNode::Vehicle::publish_msg(){
         ground_truth_msg.twist.twist.linear.z = gvel.z;
         ground_truth_msg.twist.twist.angular.z = gvel.a;
 
-        ground_truth_msg.header.frame_id = frame_id_odom_;
+        ground_truth_msg.header.frame_id = frame_id_world_;
         ground_truth_msg.header.stamp = node_->sim_time_;
 
         ground_truth_pub->publish(ground_truth_msg);
@@ -136,13 +129,7 @@ void StageNode::Vehicle::publish_tf(){
         tf2::Transform transform(quaternion, tf2::Vector3(msg_odom_.pose.pose.position.x, msg_odom_.pose.pose.position.y, 0.0));
         node_->tf_->sendTransform(create_transform_stamped(transform, node_->sim_time_,
                                                           frame_id_odom_,
-                                                          frame_id_footprint_));
-
-        // the position of the robot
-        node_->tf_->sendTransform(create_transform_stamped(tf2::Transform::getIdentity(),
-                                                          node_->sim_time_,
-                                                          frame_id_footprint_,
-                                                          frame_id_base_));
+                                                          frame_id_base_link_));
 }
 
 void StageNode::Vehicle::callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg)

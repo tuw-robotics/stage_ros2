@@ -60,7 +60,7 @@ bool StageNode::Vehicle::Ranger::prepare_tf()
     tf2::Quaternion quternion;
     quternion.setRPY(0.0, 0.0, pose.a);
     tf2::Transform txLaser = tf2::Transform(quternion, tf2::Vector3(pose.x, pose.y, vehicle->positionmodel->GetGeom().size.z + pose.z));
-    *transform = create_transform_stamped(txLaser, node->sim_time_, vehicle->frame_id_base_, frame_id);
+    *transform = create_transform_stamped(txLaser, node->sim_time_, vehicle->frame_id_base_link_, frame_id);
     if(node->use_static_transformations_) vehicle->tf_static_broadcaster_->sendTransform(*transform);
     return true;
 }

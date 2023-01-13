@@ -39,37 +39,45 @@ void StageNode::Vehicle::Camera::init(bool add_id_to_topic)
     pub_camera = node->create_publisher<sensor_msgs::msg::CameraInfo>(topic_name_camera_info, 10);
     pub_depth = node->create_publisher<sensor_msgs::msg::Image>(topic_name_depth, 10);
 }
+bool StageNode::Vehicle::Camera::prepare_msg()
+{
+    if (msg_image){
+        return true;
+    }
+    if (!model->FrameColor()){
+        return false;
+    }
+    msg_image = std::make_shared<sensor_msgs::msg::Image>();
+
+    msg_image->height = model->getHeight();
+    msg_image->width = model->getWidth();
+    msg_image->encoding = "rgba8";
+    // node->imageMsgs[r].is_bigendian="";
+    msg_image->step = msg_image->width * 4;
+    msg_image->data.resize(msg_image->width * msg_image->height * 4);
+    msg_image->header.frame_id = frame_id;
+
+    return true;
+}
 void StageNode::Vehicle::Camera::publish_msg()
 {
-    if (model->FrameColor())
+    if (prepare_msg())
     {
-        sensor_msgs::msg::Image image_msg;
 
-        image_msg.height = model->getHeight();
-        image_msg.width = model->getWidth();
-        image_msg.encoding = "rgba8";
-        // node->imageMsgs[r].is_bigendian="";
-        image_msg.step = image_msg.width * 4;
-        image_msg.data.resize(image_msg.width * image_msg.height * 4);
-
-        memcpy(&(image_msg.data[0]), model->FrameColor(), image_msg.width * image_msg.height * 4);
+        memcpy(&(msg_image->data[0]), model->FrameColor(), msg_image->width * msg_image->height * 4);
 
         // invert the opengl weirdness
-        int height = image_msg.height - 1;
-        int linewidth = image_msg.width * 4;
+        int linewidth = msg_image->width * 4;
 
         char *temp = new char[linewidth];
-        for (int y = 0; y < (height + 1) / 2; y++)
+        for (unsigned int y = 0; y < (msg_image->height + 1) / 2; y++)
         {
-            memcpy(temp, &image_msg.data[y * linewidth], linewidth);
-            memcpy(&(image_msg.data[y * linewidth]), &(image_msg.data[(height - y) * linewidth]), linewidth);
-            memcpy(&(image_msg.data[(height - y) * linewidth]), temp, linewidth);
+            memcpy(temp, &msg_image->data[y * linewidth], linewidth);
+            memcpy(&(msg_image->data[y * linewidth]), &(msg_image->data[(msg_image->height - y - 1) * linewidth]), linewidth);
+            memcpy(&(msg_image->data[(msg_image->height - y - 1) * linewidth]), temp, linewidth);
         }
-
-        image_msg.header.frame_id = frame_id;
-        image_msg.header.stamp = node->sim_time_;
-
-        pub_image->publish(image_msg);
+        msg_image->header.stamp = node->sim_time_;
+        pub_image->publish(*msg_image);
     }
 
     // Get latest depth data
@@ -142,7 +150,7 @@ void StageNode::Vehicle::Camera::publish_msg()
             lp.a + (model->getCamera().yaw() * M_PI / 180.0) - vehicle->positionmodel->GetPose().a);
 
         tf2::Transform tr = tf2::Transform(Q, tf2::Vector3(lp.x, lp.y, vehicle->positionmodel->GetGeom().size.z + lp.z));
-        node->tf_->sendTransform(create_transform_stamped(tr, node->sim_time_, vehicle->frame_id_base_, frame_id));
+        node->tf_->sendTransform(create_transform_stamped(tr, node->sim_time_, vehicle->frame_id_base_link_, frame_id));
 
         sensor_msgs::msg::CameraInfo camera_msg;
         camera_msg.header.frame_id = frame_id;
