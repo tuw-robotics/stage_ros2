@@ -40,11 +40,11 @@ def generate_launch_description():
         description='Whether run a rviz')
 
     declare_config = DeclareLaunchArgument(
-        'config', default_value='unittest',
+        'config', default_value='example',
         description='Whether to respawn if a node crashes. Applied when composition is disabled.')
 
     declare_world = DeclareLaunchArgument(
-        'world', default_value='unittest',
+        'world', default_value='cave_different_vehicles',
         description='world to load in stage')
 
     return LaunchDescription([
