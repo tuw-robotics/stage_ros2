@@ -96,12 +96,8 @@ bool StageNode::Vehicle::Camera::prepare_msg_camera(){
     cy = msg_camera->height / 2.0;
     double fovh = model->getCamera().horizFov() * M_PI / 180.0;
     double fovv = model->getCamera().vertFov() * M_PI / 180.0;
-    // double fx_ = 1.43266615300557*node->models[r]->getWidth()/tan(fovh);
-    // double fy_ = 1.43266615300557*node->models[r]->getHeight()/tan(fovv);
     fx = model->getWidth() / (2 * tan(fovh / 2));
     fy = model->getHeight() / (2 * tan(fovv / 2));
-
-    // ROS_INFO("fx=%.4f,%.4f; fy=%.4f,%.4f", fx, fx_, fy, fy_);
 
     msg_camera->d.resize(4, 0.0);
 

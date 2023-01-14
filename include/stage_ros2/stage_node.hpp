@@ -183,9 +183,9 @@ public:
     void declare_parameters();
 
     // int ros parameters for the startup
-    void update_parameters();
+    void read_parameters();
     
-    // callback to check changes on the parameters
+    // callback to check changes on the parameters its called every second
     void callback_update_parameters();
 
     // timer to check regulary for parameter changes

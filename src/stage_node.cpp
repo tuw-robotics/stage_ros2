@@ -15,6 +15,9 @@ StageNode::~StageNode()
 {
 }
 
+/**
+ * declears ros paramters once after the node started
+*/
 void StageNode::declare_parameters()
 {
     this->set_parameter(rclcpp::Parameter("use_sim_time", true));
@@ -59,7 +62,11 @@ void StageNode::declare_parameters()
     this->declare_parameter<std::string>("frame_id_base_link", "base_link", param_desc_frame_id_base_link_name_);
 }
 
-void StageNode::update_parameters(){
+/**
+ * reads ros paramters once after the node started
+ * it also setup the time to check on the dynamic parameters
+*/
+void StageNode::read_parameters(){
     double base_watchdog_timeout_sec{5.0};
     this->get_parameter("enable_gui", this->enable_gui_);
     this->get_parameter("use_model_names", this->use_model_names);
@@ -83,7 +90,9 @@ void StageNode::update_parameters(){
     using namespace std::chrono_literals;
     timer_update_parameter_ = this->create_wall_timer(1000ms, std::bind(&StageNode::callback_update_parameters, this));
 }
-
+/**
+ * callback to update dynamic paramters
+*/
 void StageNode::callback_update_parameters()
 {
     double base_watchdog_timeout_sec;
@@ -93,7 +102,7 @@ void StageNode::callback_update_parameters()
     this->get_parameter("use_static_transformations", use_static_transformations_);
 
     this->get_parameter("publish_ground_truth", this->publish_ground_truth_);
-    RCLCPP_INFO(this->get_logger(), "callback_update_parameter");
+    // RCLCPP_INFO(this->get_logger(), "callback_update_parameter");
 }
 
 /**
@@ -198,7 +207,7 @@ void StageNode::init(int argc, char **argv)
 {
 
     this->sim_time_ = rclcpp::Time(0, 0);
-    update_parameters();
+    read_parameters();
 
 
     // initialize the libstage
