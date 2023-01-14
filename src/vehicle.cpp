@@ -47,20 +47,20 @@ void StageNode::Vehicle::init(bool use_model_name)
     topic_name_ground_truth_ = name_space_ + TOPIC_GROUND_TRUTH;
     topic_name_cmd_ = name_space_ + TOPIC_CMD_VEL;
 
-    odom_pub = node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_odom_, 10);
-    ground_truth_pub = node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_ground_truth_, 10);
-    cmdvel_sub = node_->create_subscription<geometry_msgs::msg::Twist>(topic_name_cmd_, 10, std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
+    pub_odom_ = node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_odom_, 10);
+    pub_ground_truth_ = node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_ground_truth_, 10);
+    sub_cmd_ = node_->create_subscription<geometry_msgs::msg::Twist>(topic_name_cmd_, 10, std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
 
     positionmodel->Subscribe();
 
-    for (std::shared_ptr<Ranger> ranger: rangers)
+    for (std::shared_ptr<Ranger> ranger: rangers_)
     {
-        ranger->init(rangers.size() > 1);
+        ranger->init(rangers_.size() > 1);
     }
 
-    for (std::shared_ptr<Camera> camera: cameras)
+    for (std::shared_ptr<Camera> camera: cameras_)
     {
-        camera->init(rangers.size() > 1);
+        camera->init(rangers_.size() > 1);
     }
 }
 
@@ -78,7 +78,7 @@ void StageNode::Vehicle::publish_msg(){
         msg_odom_.header.frame_id = frame_id_odom_;
         msg_odom_.header.stamp = node_->sim_time_;
 
-        odom_pub->publish(msg_odom_);
+        pub_odom_->publish(msg_odom_);
 
         // Also publish the ground truth pose and velocity
         Stg::Pose gpose = positionmodel->GetGlobalPose();
@@ -119,7 +119,7 @@ void StageNode::Vehicle::publish_msg(){
         ground_truth_msg.header.frame_id = frame_id_world_;
         ground_truth_msg.header.stamp = node_->sim_time_;
 
-        ground_truth_pub->publish(ground_truth_msg);
+        pub_ground_truth_->publish(ground_truth_msg);
         time_last_pose_update_ = node_->sim_time_;
 
 }

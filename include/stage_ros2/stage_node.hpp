@@ -133,46 +133,46 @@ private:
 
         // stage related models
         Stg::ModelPosition *positionmodel;            // one position
-        std::vector<std::shared_ptr<Ranger>> rangers; // multiple rangers per position
-        std::vector<std::shared_ptr<Camera>> cameras;  // multiple cameras per position
+        std::vector<std::shared_ptr<Ranger>> rangers_; // multiple rangers per position
+        std::vector<std::shared_ptr<Camera>> cameras_;  // multiple cameras per position
 
         // ros publishers
-        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub;         // one odom
-        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ground_truth_pub; // one ground truth
-        rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmdvel_sub; // one cmd_vel subscriber
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_;         // one odom
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_ground_truth_; // one ground truth
+        rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_; // one cmd_vel subscriber
 
         std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
         std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     };
 
+    /// vector to hold the simulated vehicles with ros interfaces
     std::vector<std::shared_ptr<Vehicle>> vehicles_;
 
-    // Used to remember initial poses for soft reset
-    rclcpp::Service<std_srvs::srv::Empty>::SharedPtr reset_srv_;
 
-    rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_pub_;
-
-    bool isDepthCanonical_;           /// ROS parameter
-    bool use_model_names;             /// ROS parameter 
-    bool enable_gui_;                 /// ROS parameter
-    bool publish_ground_truth_;       /// ROS parameter
-    bool use_static_transformations_; /// ROS parameter
-    std::string world_file_;          /// ROS parameter
-    std::string frame_id_odom_name_;  /// ROS parameter
-    std::string frame_id_world_name_; /// ROS parameter
+    bool isDepthCanonical_;                /// ROS parameter
+    bool use_model_names;                  /// ROS parameter 
+    bool enable_gui_;                      /// ROS parameter
+    bool publish_ground_truth_;            /// ROS parameter
+    bool use_static_transformations_;      /// ROS parameter
+    std::string world_file_;               /// ROS parameter
+    std::string frame_id_odom_name_;       /// ROS parameter
+    std::string frame_id_world_name_;      /// ROS parameter
     std::string frame_id_base_link_name_;  /// ROS parameter
 
-    // A helper function that is executed for each stage model.  We use it
-    // to search for models of interest.
-    static int ghfunc(Stg::Model *mod, StageNode *node);
-
-    static int s_update(Stg::World *world, StageNode *node);
-
+    // TF broadcaster to publish the robot odom
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_;
 
-    static geometry_msgs::msg::TransformStamped create_transform_stamped(const tf2::Transform &in, const rclcpp::Time &timestamp, const std::string &frame_id, const std::string &child_frame_id);
+    // Service to listening on soft reset signals
+    rclcpp::Service<std_srvs::srv::Empty>::SharedPtr srv_reset_;
 
-    static geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
+    // publisher for the simulated clock
+    rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_pub_;
+
+    /// called only ones to init the models and to crate for each model a link to ROS
+    static int callback_init_stage_model(Stg::Model *mod, StageNode *node);
+
+    /// called on every simulation interation
+    static int callback_update_stage_world(Stg::World *world, StageNode *node);
 
 public:
     ~StageNode();
@@ -211,6 +211,9 @@ public:
     // Current simulation time
     rclcpp::Time sim_time_;
 private:
+    
+    static geometry_msgs::msg::TransformStamped create_transform_stamped(const tf2::Transform &in, const rclcpp::Time &timestamp, const std::string &frame_id, const std::string &child_frame_id);
+    static geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
 
 };
 

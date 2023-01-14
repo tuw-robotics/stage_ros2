@@ -102,7 +102,7 @@ void StageNode::callback_update_parameters()
  * @param mod stage model
  * @param node pointer to this class
 */
-int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
+int StageNode::callback_init_stage_model(Stg::Model *mod, StageNode *node)
 {
     if (dynamic_cast<Stg::ModelPosition *>(mod))
     {
@@ -118,8 +118,8 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
         Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(mod->Parent());
         for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
             if (parent == vehcile->positionmodel){
-                auto ranger = std::make_shared<Vehicle::Ranger>(vehcile->rangers.size()+1, dynamic_cast<Stg::ModelRanger *>(mod), vehcile, node);
-                vehcile->rangers.push_back(ranger);
+                auto ranger = std::make_shared<Vehicle::Ranger>(vehcile->rangers_.size()+1, dynamic_cast<Stg::ModelRanger *>(mod), vehcile, node);
+                vehcile->rangers_.push_back(ranger);
             }
         }
     }
@@ -128,15 +128,15 @@ int StageNode::ghfunc(Stg::Model *mod, StageNode *node)
         Stg::ModelPosition *parent = dynamic_cast<Stg::ModelPosition *>(mod->Parent());
         for (std::shared_ptr<Vehicle> vehcile: node->vehicles_){
             if (parent == vehcile->positionmodel){
-                auto camera = std::make_shared<Vehicle::Camera>(vehcile->cameras.size()+1, dynamic_cast<Stg::ModelCamera *>(mod), vehcile, node);
-                vehcile->cameras.push_back(camera);
+                auto camera = std::make_shared<Vehicle::Camera>(vehcile->cameras_.size()+1, dynamic_cast<Stg::ModelCamera *>(mod), vehcile, node);
+                vehcile->cameras_.push_back(camera);
             }
         }
     }
     return 0;
 }
 
-int StageNode::s_update(Stg::World *world, StageNode *node)
+int StageNode::callback_update_stage_world(Stg::World *world, StageNode *node)
 {
     // We return false to indicate that we want to be called again (an
     // odd convention, but that's the way that Stage works).
@@ -167,7 +167,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
         vehicle->publish_tf();
 
         // loop on the ranger devices for the current robot
-        for (auto ranger: vehicle->rangers)
+        for (auto ranger: vehicle->rangers_)
         {
             ranger->publish_msg();
             ranger->publish_tf();
@@ -175,7 +175,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
 
 
         // loop on the camera devices for the current robot
-        for (auto camera: vehicle->cameras)
+        for (auto camera: vehicle->cameras_)
         {
              camera->publish_msg();
              camera->publish_tf();
@@ -201,7 +201,7 @@ void StageNode::init(int argc, char **argv)
     update_parameters();
 
 
-    // initialize libstage
+    // initialize the libstage
     Stg::Init(&argc, &argv);
 
     if (this->enable_gui_)
@@ -210,13 +210,8 @@ void StageNode::init(int argc, char **argv)
         this->world = new Stg::World();
 
     this->world->Load(world_file_.c_str());
-
-    // todo: reverse the order of these next lines? try it .
-
-    this->world->AddUpdateCallback((Stg::world_callback_t)s_update, this);
-
-    // inspect every model to locate the things we care about
-    this->world->ForEachDescendant((Stg::model_callback_t)ghfunc, this);
+    this->world->AddUpdateCallback((Stg::world_callback_t)callback_update_stage_world, this);
+    this->world->ForEachDescendant((Stg::model_callback_t)callback_init_stage_model, this);
 }
 
 // Subscribe to models of interest.  Currently, we find and subscribe
@@ -227,8 +222,6 @@ void StageNode::init(int argc, char **argv)
 // topics, similar to Player .cfg files.
 int StageNode::SubscribeModels()
 {
-    this->set_parameter(rclcpp::Parameter("use_sim_time", true));
-
     for (std::shared_ptr<Vehicle> vehicle: this->vehicles_)
     {
         // init topics and use the stage models names if there are more than one vehicle in the world
@@ -239,7 +232,7 @@ int StageNode::SubscribeModels()
     clock_pub_ = this->create_publisher<rosgraph_msgs::msg::Clock>("/clock", 10);
 
     // advertising reset service
-    reset_srv_ = this->create_service<std_srvs::srv::Empty>("reset_positions", [this](const std_srvs::srv::Empty::Request::SharedPtr request, std_srvs::srv::Empty::Response::SharedPtr response)
+    srv_reset_ = this->create_service<std_srvs::srv::Empty>("reset_positions", [this](const std_srvs::srv::Empty::Request::SharedPtr request, std_srvs::srv::Empty::Response::SharedPtr response)
                                                             { this->cb_reset_srv(request, response); });
 
     return (0);
