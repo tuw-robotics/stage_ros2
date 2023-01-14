@@ -3,4 +3,4 @@
 * [run examples](examples.md)
 
 
-<img src="res/pioneer_in_cave.png" alt="stage and rviz with laser, tf, and cameras" height="200px" /> 
+<img src="res/screenshot_stage_rviz_example.jpg" alt="stage and rviz with laser, tf, and cameras" height="200px" /> 
