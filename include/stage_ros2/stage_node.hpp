@@ -167,6 +167,9 @@ private:
 
     // publisher for the simulated clock
     rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_pub_;
+    
+    // timer to check regulary for parameter changes
+    rclcpp::TimerBase::SharedPtr timer_update_parameter_;
 
     /// called only ones to init the models and to crate for each model a link to ROS
     static int callback_init_stage_model(Stg::Model *mod, StageNode *node);
@@ -188,8 +191,6 @@ public:
     // callback to check changes on the parameters its called every second
     void callback_update_parameters();
 
-    // timer to check regulary for parameter changes
-    rclcpp::TimerBase::SharedPtr timer_update_parameter_;
 
     // Subscribe to models of interest.  Currently, we find and subscribe
     // to the first 'laser' model and the first 'position' model.  Returns
