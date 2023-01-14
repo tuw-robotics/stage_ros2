@@ -28,11 +28,11 @@ void StageNode::declare_parameters()
 
     auto param_desc_use_static_transformations_ = rcl_interfaces::msg::ParameterDescriptor{};
     param_desc_use_static_transformations_.description = "use static transformations for sensor frames!";
-    this->declare_parameter<bool>("use_static_transformations", false, param_desc_use_static_transformations_);
+    this->declare_parameter<bool>("use_static_transformations", true, param_desc_use_static_transformations_);
 
     auto param_desc_watchdog_timeout = rcl_interfaces::msg::ParameterDescriptor{};
     param_desc_watchdog_timeout.description = "timeout after which a vehicle stopps if no command is received!";
-    this->declare_parameter<double>("base_watchdog_timeout", 0.2, param_desc_watchdog_timeout);
+    this->declare_parameter<double>("base_watchdog_timeout", 5, param_desc_watchdog_timeout);
 
     auto param_desc_is_depth_canonical = rcl_interfaces::msg::ParameterDescriptor{};
     param_desc_is_depth_canonical.description = "USE depth canonical!";
@@ -86,11 +86,10 @@ void StageNode::update_parameters(){
 
 void StageNode::callback_update_parameters()
 {
-    double base_watchdog_timeout_sec{0.2};
+    double base_watchdog_timeout_sec;
     this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
     this->base_watchdog_timeout_ = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
 
-    bool use_static_transformations_{true};
     this->get_parameter("use_static_transformations", use_static_transformations_);
 
     this->get_parameter("publish_ground_truth", this->publish_ground_truth_);
@@ -150,6 +149,7 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
 
     std::scoped_lock lock(node->msg_lock);
 
+    
     node->sim_time_ = rclcpp::Time(world->SimTimeNow() * 1e3);
     // We're not allowed to publish clock==0, because it used as a special
     // value in parts of ROS, #4027.
@@ -158,24 +158,16 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
         RCLCPP_DEBUG(node->get_logger(), "Skipping initial simulation step, to avoid publishing clock==0");
         return 0;
     }
-
-    // TODO make this only affect one robot if necessary
-    if ((node->base_watchdog_timeout_.nanoseconds() > 0) &&
-        ((node->sim_time_ - node->base_last_cmd_) >= node->base_watchdog_timeout_))
-    {
-        for (size_t r = 0; r < node->vehicles_.size(); r++)
-            node->vehicles_[r]->positionmodel->SetSpeed(0.0, 0.0, 0.0);
-    }
-
     // loop on the robot models
     for (size_t r = 0; r < node->vehicles_.size(); ++r)
     {
-        auto robotmodel = node->vehicles_[r];
-        robotmodel->publish_msg();
-        robotmodel->publish_tf();
+        auto vehicle = node->vehicles_[r];
+        vehicle->check_watchdog_timeout();
+        vehicle->publish_msg();
+        vehicle->publish_tf();
 
         // loop on the ranger devices for the current robot
-        for (auto ranger: robotmodel->rangers)
+        for (auto ranger: vehicle->rangers)
         {
             ranger->publish_msg();
             ranger->publish_tf();
@@ -183,14 +175,12 @@ int StageNode::s_update(Stg::World *world, StageNode *node)
 
 
         // loop on the camera devices for the current robot
-        for (auto camera: robotmodel->cameras)
+        for (auto camera: vehicle->cameras)
         {
              camera->publish_msg();
              camera->publish_tf();
         }
     }
-
-    node->base_last_globalpos_time_ = node->sim_time_;
     rosgraph_msgs::msg::Clock clock_msg;
     clock_msg.clock = node->sim_time_;
     node->clock_pub_->publish(clock_msg);
@@ -208,7 +198,6 @@ void StageNode::init(int argc, char **argv)
 {
 
     this->sim_time_ = rclcpp::Time(0, 0);
-    this->base_last_cmd_ = rclcpp::Time(0, 0);
     update_parameters();
 
 

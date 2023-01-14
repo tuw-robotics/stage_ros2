@@ -15,6 +15,9 @@ StageNode::Vehicle::Vehicle(size_t id, const Stg::Pose &pose, const std::string 
 {
     tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node_);
     tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
+    time_last_pose_update_ = rclcpp::Time(0, 0);
+    time_last_cmd_received_ = rclcpp::Time(0, 0);
+    timeout_cmd_ = rclcpp::Time(0, 0);
 }
 
 size_t StageNode::Vehicle::id() const
@@ -83,10 +86,11 @@ void StageNode::Vehicle::publish_msg(){
         q_gpose.setRPY(0.0, 0.0, gpose.a);
         tf2::Transform gt(q_gpose, tf2::Vector3(gpose.x, gpose.y, 0.0));
         // Velocity is 0 by default and will be set only if there is previous pose and time delta>0
+        // @ToDo uising the positionmodel->GetVelocity() a self computed delta
         Stg::Velocity gvel(0, 0, 0, 0);
         if (global_pose_)
         {
-            double dT = (node_->sim_time_ - node_->base_last_globalpos_time_).seconds();
+            double dT = (node_->sim_time_ - time_last_pose_update_).seconds();
             if (dT > 0)
                 gvel = Stg::Velocity(
                     (gpose.x - global_pose_->x) / dT,
@@ -116,6 +120,7 @@ void StageNode::Vehicle::publish_msg(){
         ground_truth_msg.header.stamp = node_->sim_time_;
 
         ground_truth_pub->publish(ground_truth_msg);
+        time_last_pose_update_ = node_->sim_time_;
 
 }
 void StageNode::Vehicle::publish_tf(){
@@ -132,11 +137,25 @@ void StageNode::Vehicle::publish_tf(){
                                                           frame_id_base_link_));
 }
 
+void StageNode::Vehicle::check_watchdog_timeout(){
+
+    if ((timeout_cmd_  != rclcpp::Time(0, 0)) && (node_->sim_time_ > timeout_cmd_))
+    {
+        Stg::Velocity v = positionmodel->GetVelocity();
+        // stopping makes only sense if the vehicle drives
+        if (!positionmodel->GetVelocity().IsZero()){
+            this->positionmodel->SetSpeed(0.0, 0.0, 0.0);
+            RCLCPP_INFO(node_->get_logger(), "watchdog timeout on %s", name().c_str());
+        }
+    }
+}
 void StageNode::Vehicle::callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg)
 {
     std::scoped_lock lock(node_->msg_lock);
     this->positionmodel->SetSpeed(msg->linear.x,
                                   msg->linear.y,
                                   msg->angular.z);
-    node_->base_last_cmd_ = node_->sim_time_;
+    time_last_cmd_received_ = node_->sim_time_;
+    timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
+
 }

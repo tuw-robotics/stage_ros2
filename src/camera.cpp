@@ -39,7 +39,7 @@ void StageNode::Vehicle::Camera::init(bool add_id_to_topic)
     pub_camera = node->create_publisher<sensor_msgs::msg::CameraInfo>(topic_name_camera_info, 10);
     pub_depth = node->create_publisher<sensor_msgs::msg::Image>(topic_name_depth, 10);
 }
-bool StageNode::Vehicle::Camera::prepare_msg()
+bool StageNode::Vehicle::Camera::prepare_msg_image()
 {
     if (msg_image){
         return true;
@@ -59,49 +59,107 @@ bool StageNode::Vehicle::Camera::prepare_msg()
 
     return true;
 }
+bool StageNode::Vehicle::Camera::prepare_msg_depth(){
+    if (msg_depth){
+        return true;
+    }
+    if (!model->FrameDepth()){
+        return false;
+    }
+    msg_depth = std::make_shared<sensor_msgs::msg::Image>();
+    msg_depth->height = model->getHeight();
+    msg_depth->width = model->getWidth();
+    msg_depth->encoding = node->isDepthCanonical_ ? sensor_msgs::image_encodings::TYPE_32FC1 : sensor_msgs::image_encodings::TYPE_16UC1;
+    // node->depthMsgs[r].is_bigendian="";
+    int sz = node->isDepthCanonical_ ? sizeof(float) : sizeof(uint16_t);
+    size_t len = msg_depth->width * msg_depth->height;
+    msg_depth->step = msg_depth->width * sz;
+    msg_depth->data.resize(len * sz);
+    return true;
+}
+bool StageNode::Vehicle::Camera::prepare_msg_camera(){
+
+    if (msg_camera){
+        return true;
+    }
+    if (!(model->FrameColor() || model->FrameDepth())){
+        return false;
+    }
+    msg_camera = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    msg_camera->header.frame_id = frame_id;
+    msg_camera->header.stamp = node->sim_time_;
+    msg_camera->height = model->getHeight();
+    msg_camera->width = model->getWidth();
+
+    double fx, fy, cx, cy;
+    cx = msg_camera->width / 2.0;
+    cy = msg_camera->height / 2.0;
+    double fovh = model->getCamera().horizFov() * M_PI / 180.0;
+    double fovv = model->getCamera().vertFov() * M_PI / 180.0;
+    // double fx_ = 1.43266615300557*node->models[r]->getWidth()/tan(fovh);
+    // double fy_ = 1.43266615300557*node->models[r]->getHeight()/tan(fovv);
+    fx = model->getWidth() / (2 * tan(fovh / 2));
+    fy = model->getHeight() / (2 * tan(fovv / 2));
+
+    // ROS_INFO("fx=%.4f,%.4f; fy=%.4f,%.4f", fx, fx_, fy, fy_);
+
+    msg_camera->d.resize(4, 0.0);
+
+    msg_camera->k[0] = fx;
+    msg_camera->k[2] = cx;
+    msg_camera->k[4] = fy;
+    msg_camera->k[5] = cy;
+    msg_camera->k[8] = 1.0;
+
+    msg_camera->r[0] = 1.0;
+    msg_camera->r[4] = 1.0;
+    msg_camera->r[8] = 1.0;
+
+    msg_camera->p[0] = fx;
+    msg_camera->p[2] = cx;
+    msg_camera->p[5] = fy;
+    msg_camera->p[6] = cy;
+    msg_camera->p[10] = 1.0;
+    return true;
+}
+
+bool StageNode::Vehicle::Camera::prepare_msg(){
+    if(!prepare_msg_image()) return false;
+    if(!prepare_msg_depth()) return false;
+    return true;
+}
+
 void StageNode::Vehicle::Camera::publish_msg()
 {
-    if (prepare_msg())
+    // Translate into ROS message format and publish
+    if (prepare_msg_image())
     {
 
         memcpy(&(msg_image->data[0]), model->FrameColor(), msg_image->width * msg_image->height * 4);
 
         // invert the opengl weirdness
-        int linewidth = msg_image->width * 4;
-
-        char *temp = new char[linewidth];
+        char *temp = new char[msg_image->step];
         for (unsigned int y = 0; y < (msg_image->height + 1) / 2; y++)
         {
-            memcpy(temp, &msg_image->data[y * linewidth], linewidth);
-            memcpy(&(msg_image->data[y * linewidth]), &(msg_image->data[(msg_image->height - y - 1) * linewidth]), linewidth);
-            memcpy(&(msg_image->data[(msg_image->height - y - 1) * linewidth]), temp, linewidth);
+            memcpy(temp, &msg_image->data[y * msg_image->step], msg_image->step);
+            memcpy(&(msg_image->data[y * msg_image->step]), &(msg_image->data[(msg_image->height - y - 1) * msg_image->step]), msg_image->step);
+            memcpy(&(msg_image->data[(msg_image->height - y - 1) * msg_image->step]), temp, msg_image->step);
         }
         msg_image->header.stamp = node->sim_time_;
         pub_image->publish(*msg_image);
     }
 
-    // Get latest depth data
     // Translate into ROS message format and publish
-    // Skip if there are no subscribers
-    if (model->FrameDepth())
+    if (prepare_msg_depth())
     {
-        sensor_msgs::msg::Image depth_msg;
-        depth_msg.height = model->getHeight();
-        depth_msg.width = model->getWidth();
-        depth_msg.encoding = node->isDepthCanonical_ ? sensor_msgs::image_encodings::TYPE_32FC1 : sensor_msgs::image_encodings::TYPE_16UC1;
-        // node->depthMsgs[r].is_bigendian="";
-        int sz = node->isDepthCanonical_ ? sizeof(float) : sizeof(uint16_t);
-        size_t len = depth_msg.width * depth_msg.height;
-        depth_msg.step = depth_msg.width * sz;
-        depth_msg.data.resize(len * sz);
-
         // processing data according to REP118
         if (node->isDepthCanonical_)
         {
-            double nearClip = model->getCamera().nearClip();
-            double farClip = model->getCamera().farClip();
-            memcpy(&(depth_msg.data[0]), model->FrameDepth(), len * sz);
-            float *data = (float *)&(depth_msg.data[0]);
+            float nearClip = model->getCamera().nearClip();
+            float farClip = model->getCamera().farClip();
+            memcpy(&(msg_depth->data[0]), model->FrameDepth(), msg_depth->data.size());
+            float *data = (float *)&(msg_depth->data[0]);
+            size_t len = msg_depth->width * msg_depth->height;
             for (size_t i = 0; i < len; ++i)
                 if (data[i] <= nearClip)
                     data[i] = -INFINITY;
@@ -112,85 +170,62 @@ void StageNode::Vehicle::Camera::publish_msg()
         {
             int nearClip = (int)(model->getCamera().nearClip() * 1000);
             int farClip = (int)(model->getCamera().farClip() * 1000);
+            size_t len = msg_depth->width * msg_depth->height;
             for (size_t i = 0; i < len; ++i)
             {
                 int v = (int)(model->FrameDepth()[i] * 1000);
                 if (v <= nearClip || v >= farClip)
                     v = 0;
-                ((uint16_t *)&(depth_msg.data[0]))[i] = (uint16_t)((v <= nearClip || v >= farClip) ? 0 : v);
+                ((uint16_t *)&(msg_depth->data[0]))[i] = (uint16_t)((v <= nearClip || v >= farClip) ? 0 : v);
             }
         }
 
         // invert the opengl weirdness
-        int height = depth_msg.height - 1;
-        int linewidth = depth_msg.width * sz;
-
-        char *temp = new char[linewidth];
-        for (int y = 0; y < (height + 1) / 2; y++)
+        char *temp = new char[msg_depth->step];
+        for (unsigned int y = 0; y < msg_depth->height / 2; y++)
         {
-            memcpy(temp, &depth_msg.data[y * linewidth], linewidth);
-            memcpy(&(depth_msg.data[y * linewidth]), &(depth_msg.data[(height - y) * linewidth]), linewidth);
-            memcpy(&(depth_msg.data[(height - y) * linewidth]), temp, linewidth);
+            memcpy(temp, &msg_depth->data[y * msg_depth->step], msg_depth->step);
+            memcpy(&(msg_depth->data[y * msg_depth->step]), &(msg_depth->data[(msg_depth->height - 1 - y) * msg_depth->step]), msg_depth->step);
+            memcpy(&(msg_depth->data[(msg_depth->height - 1 - y) * msg_depth->step]), temp, msg_depth->step);
         }
 
-        depth_msg.header.frame_id = frame_id;
-        depth_msg.header.stamp = node->sim_time_;
-        pub_depth->publish(depth_msg);
+        msg_depth->header.frame_id = frame_id;
+        msg_depth->header.stamp = node->sim_time_;
+        pub_depth->publish(*msg_depth);
     }
 
-    // sending camera's tf and info only if image or depth topics are subscribed to
-    if ((model->FrameColor()) || (model->FrameDepth()))
+    // Translate into ROS message format and publish
+    if (prepare_msg_camera())
     {
+        msg_camera->header.stamp = node->sim_time_;
+        pub_camera->publish(*msg_camera);
+    }
+}
+bool StageNode::Vehicle::Camera::prepare_tf(){
+    if(transform) return true;
 
-        Stg::Pose lp = model->GetPose();
-        tf2::Quaternion Q;
-        Q.setRPY(
+    if (!(model->FrameColor() || model->FrameDepth())) return false;
+    transform = std::make_shared<geometry_msgs::msg::TransformStamped>();
+
+    Stg::Pose pose = model->GetPose();
+    tf2::Quaternion quternion;
+    quternion.setRPY(
             (model->getCamera().pitch() * M_PI / 180.0) - M_PI,
             0.0,
-            lp.a + (model->getCamera().yaw() * M_PI / 180.0) - vehicle->positionmodel->GetPose().a);
-
-        tf2::Transform tr = tf2::Transform(Q, tf2::Vector3(lp.x, lp.y, vehicle->positionmodel->GetGeom().size.z + lp.z));
-        node->tf_->sendTransform(create_transform_stamped(tr, node->sim_time_, vehicle->frame_id_base_link_, frame_id));
-
-        sensor_msgs::msg::CameraInfo camera_msg;
-        camera_msg.header.frame_id = frame_id;
-        camera_msg.header.stamp = node->sim_time_;
-        camera_msg.height = model->getHeight();
-        camera_msg.width = model->getWidth();
-
-        double fx, fy, cx, cy;
-        cx = camera_msg.width / 2.0;
-        cy = camera_msg.height / 2.0;
-        double fovh = model->getCamera().horizFov() * M_PI / 180.0;
-        double fovv = model->getCamera().vertFov() * M_PI / 180.0;
-        // double fx_ = 1.43266615300557*node->models[r]->getWidth()/tan(fovh);
-        // double fy_ = 1.43266615300557*node->models[r]->getHeight()/tan(fovv);
-        fx = model->getWidth() / (2 * tan(fovh / 2));
-        fy = model->getHeight() / (2 * tan(fovv / 2));
-
-        // ROS_INFO("fx=%.4f,%.4f; fy=%.4f,%.4f", fx, fx_, fy, fy_);
-
-        camera_msg.d.resize(4, 0.0);
-
-        camera_msg.k[0] = fx;
-        camera_msg.k[2] = cx;
-        camera_msg.k[4] = fy;
-        camera_msg.k[5] = cy;
-        camera_msg.k[8] = 1.0;
-
-        camera_msg.r[0] = 1.0;
-        camera_msg.r[4] = 1.0;
-        camera_msg.r[8] = 1.0;
-
-        camera_msg.p[0] = fx;
-        camera_msg.p[2] = cx;
-        camera_msg.p[5] = fy;
-        camera_msg.p[6] = cy;
-        camera_msg.p[10] = 1.0;
-
-        pub_camera->publish(camera_msg);
-    }
+            pose.a + (model->getCamera().yaw() * M_PI / 180.0) - vehicle->positionmodel->GetPose().a);
+    tf2::Transform tr = tf2::Transform(quternion, tf2::Vector3(pose.x, pose.y, vehicle->positionmodel->GetGeom().size.z + pose.z));
+    *transform = create_transform_stamped(tr, node->sim_time_, vehicle->frame_id_base_link_, frame_id);
+    if(node->use_static_transformations_) vehicle->tf_static_broadcaster_->sendTransform(*transform);
+    return true;
 }
 void StageNode::Vehicle::Camera::publish_tf()
 {
+    if(prepare_tf()){
+
+        if(node->use_static_transformations_) return;
+
+        // use tf publsiher only if use_static_transformations_ is false
+        transform->header.stamp = node->sim_time_;
+        vehicle->tf_broadcaster_->sendTransform(*transform);
+    }
 }

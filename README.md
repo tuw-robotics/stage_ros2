@@ -2,7 +2,7 @@
 
 ## missing dependencies
 ```
-rosdep install -i --from-path src --rosdistro galactic -y
+rosdep install -i --from-path src --rosdistro humble -y
 
 ```
 
@@ -30,4 +30,14 @@ SoftReset
 
 ```
 ros2 service call /reset_positions std_srvs/srv/Empty
+```
+## teleop
+install:
+```
+sudo apt install ros-humble-teleop-tool
+```
+run:
+```
+ros2 launch stage_ros2 f710.launch.py namespace:='/'
+ros2 launch stage_ros2 f710.launch.py namespace:='robot_0'
 ```

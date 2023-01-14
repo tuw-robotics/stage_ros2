@@ -76,8 +76,13 @@ private:
             rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image;       // multiple images
             sensor_msgs::msg::Image::SharedPtr msg_image;
             rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_depth;       // multiple depths
+            sensor_msgs::msg::Image::SharedPtr msg_depth;
             rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr pub_camera; // multiple cameras
+            sensor_msgs::msg::CameraInfo::SharedPtr msg_camera;
             bool prepare_msg();
+            bool prepare_msg_image();
+            bool prepare_msg_depth();
+            bool prepare_msg_camera();
             bool prepare_tf();
         public:
             Camera(unsigned int id, Stg::ModelCamera *m, std::shared_ptr<Vehicle> &vehicle, StageNode *node);
@@ -98,6 +103,9 @@ private:
         StageNode *node_;
         Stg::World *world_;
         rclcpp::Time time_last_cmd_received_;
+        rclcpp::Time timeout_cmd_;    /// if no command is received befor the vehicle is stopped
+        // Last time we saved global position (for velocity calculation).
+        rclcpp::Time time_last_pose_update_;
 
         std::string name_space_;
         std::string topic_name_cmd_;
@@ -121,6 +129,7 @@ private:
         void callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg);
         void publish_msg();
         void publish_tf();
+        void check_watchdog_timeout();
 
         // stage related models
         Stg::ModelPosition *positionmodel;            // one position
@@ -161,11 +170,6 @@ private:
 
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_;
 
-    // Last time we saved global position (for velocity calculation).
-    rclcpp::Time base_last_globalpos_time_;
-    // Last published global pose of each robot
-    std::vector<Stg::Pose> base_last_globalpos_;
-
     static geometry_msgs::msg::TransformStamped create_transform_stamped(const tf2::Transform &in, const rclcpp::Time &timestamp, const std::string &frame_id, const std::string &child_frame_id);
 
     static geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
@@ -202,8 +206,6 @@ public:
     // The main simulator object
     Stg::World *world;
 
-    // Last time that we received a velocity command
-    rclcpp::Time base_last_cmd_;
     rclcpp::Duration base_watchdog_timeout_;
 
     // Current simulation time
