@@ -44,7 +44,7 @@ def generate_launch_description():
         description='Whether to respawn if a node crashes. Applied when composition is disabled.')
 
     declare_world = DeclareLaunchArgument(
-        'world', default_value='cave_different_vehicles',
+        'world', default_value='example',
         description='world to load in stage')
 
     return LaunchDescription([
