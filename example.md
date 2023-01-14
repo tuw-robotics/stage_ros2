@@ -1,7 +1,6 @@
 # stage_ros2
 * [install](install.md)
 * [run examples](examples.md)
-
 ## Install
 
 ```
