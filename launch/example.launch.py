@@ -4,18 +4,15 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.substitutions import LaunchConfiguration, TextSubstitution 
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction, SetLaunchConfiguration
+from launch.substitutions import LaunchConfiguration
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
 
-# Add string commands if not empty
 
 def generate_launch_description():
 
-
-    use_sim_time     = LaunchConfiguration('use_sim_time',  default='true')
+    use_sim_time = LaunchConfiguration('use_sim_time',  default='true')
     this_directory = get_package_share_directory('stage_ros2')
     launch_dir = os.path.join(this_directory, 'launch')
     stage = LaunchConfiguration('stage')
@@ -57,10 +54,10 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(os.path.join(launch_dir, 'rviz.launch.py')),
             condition=IfCondition(rviz),
             launch_arguments={'namespace': namespace,
+                              'use_sim_time': use_sim_time,
                               'config': config}.items()),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(launch_dir, 'stage.launch.py')),
             condition=IfCondition(stage),
             launch_arguments={'world': world}.items()),
-
     ])

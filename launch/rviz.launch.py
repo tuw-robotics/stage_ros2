@@ -4,27 +4,29 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.substitutions import LaunchConfiguration, TextSubstitution 
+from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetLaunchConfiguration
 from launch_ros.actions import Node
 
-# Add string commands if not empty
 
 def generate_launch_description():
 
-
-    use_sim_time     = LaunchConfiguration('use_sim_time',  default='true')
+    use_sim_time = LaunchConfiguration('use_sim_time',  default='true')
     this_directory = get_package_share_directory('stage_ros2')
 
     def rviz_launch_configuration(context):
-        file = os.path.join(this_directory, 'config/rviz', context.launch_configurations['config'] + '.rviz')
+        file = os.path.join(
+            this_directory,
+            'config/rviz',
+            context.launch_configurations['config'] + '.rviz')
         return [SetLaunchConfiguration('config', file)]
 
-    namespace_arg    = DeclareLaunchArgument('namespace',   default_value=TextSubstitution(text=''))
+    namespace_arg = DeclareLaunchArgument('namespace', default_value=TextSubstitution(text=''))
     rviz_launch_configuration_arg = OpaqueFunction(function=rviz_launch_configuration)
-    rviz_config_arg = DeclareLaunchArgument('config', 
-                default_value=TextSubstitution(text='empty'), 
-                description='Use empty, cave or roblab to load a TUW enviroment')
+    rviz_config_arg = DeclareLaunchArgument(
+        'config',
+        default_value=TextSubstitution(text='empty'),
+        description='Use empty, cave or roblab to load a TUW enviroment')
 
     return LaunchDescription([
         namespace_arg,

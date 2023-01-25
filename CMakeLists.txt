@@ -23,15 +23,14 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 
 include_directories(
-   ./include
+  ./include
   ${STAGE_INCLUDE_DIRS}
 )
 
 add_library(stage_node SHARED
             src/stage_node.cpp src/vehicle.cpp src/ranger.cpp src/camera.cpp)
-target_compile_definitions(stage_node
-  PRIVATE "STAGE_ROS2_PACKAGE_DLL")
-ament_target_dependencies(stage_node rclcpp rclcpp_components 
+target_compile_definitions(stage_node PRIVATE "STAGE_ROS2_PACKAGE_DLL")
+ament_target_dependencies(stage_node rclcpp rclcpp_components
 sensor_msgs geometry_msgs nav_msgs std_msgs tf2_ros std_srvs tf2_geometry_msgs)
 
 
@@ -64,7 +63,7 @@ install(TARGETS
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
-install(TARGETS 
+install(TARGETS
   stage_ros2
   DESTINATION lib/${PROJECT_NAME})
 
