@@ -82,6 +82,7 @@ void StageNode::Vehicle::publish_msg()
   msg_odom_.twist.twist.angular.z = v.a;
   msg_odom_.header.frame_id = frame_id_odom_;
   msg_odom_.header.stamp = node_->sim_time_;
+  msg_odom_.child_frame_id = frame_id_base_link_;
 
   pub_odom_->publish(msg_odom_);
 

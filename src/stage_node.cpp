@@ -105,7 +105,7 @@ void StageNode::callback_update_parameters()
   this->get_parameter("use_static_transformations", use_static_transformations_);
 
   this->get_parameter("publish_ground_truth", this->publish_ground_truth_);
-  RCLCPP_INFO(this->get_logger(), "callback_update_parameter");
+  // RCLCPP_INFO(this->get_logger(), "callback_update_parameter");
 }
 
 /**
