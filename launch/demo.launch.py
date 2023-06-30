@@ -36,26 +36,21 @@ def generate_launch_description():
         default_value='True',
         description='Whether run a rviz')
 
-    declare_config = DeclareLaunchArgument(
-        'config', default_value='example',
-        description='Whether to respawn if a node crashes. Applied when composition is disabled.')
-
     declare_world = DeclareLaunchArgument(
         'world', default_value='example',
-        description='world to load in stage')
+        description='world to load in stage and rviz config [cave, example]')
 
     return LaunchDescription([
         declare_namespace_cmd,
         declare_rviz_cmd,
         declare_stage_cmd,
-        declare_config,
         declare_world,
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(launch_dir, 'rviz.launch.py')),
             condition=IfCondition(rviz),
             launch_arguments={'namespace': namespace,
                               'use_sim_time': use_sim_time,
-                              'config': config}.items()),
+                              'config': world}.items()),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(launch_dir, 'stage.launch.py')),
             condition=IfCondition(stage),
