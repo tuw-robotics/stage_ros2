@@ -37,7 +37,7 @@ def generate_launch_description():
         description='Whether run a rviz')
 
     declare_world = DeclareLaunchArgument(
-        'world', default_value='example',
+        'world', default_value='cave_three_robots',
         description='world to load in stage and rviz config [cave, example]')
 
     return LaunchDescription([

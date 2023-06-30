@@ -4,7 +4,7 @@
 
 ### stage
 ```
-ros2 launch stage_ros2 example.launch.py
+ros2 launch stage_ros2 demo.launch.py
 ```
 ### stage and rviz
 demo worlds with different robot configurations and rviz configs
@@ -27,7 +27,7 @@ ros2 launch stage_ros2 demo.launch.py world:=cave_seven_robots
 
 ```
 ros2 launch stage_ros2 f710.launch.py namespace:='/'       # for a single vehicle world like cave.world
-ros2 launch stage_ros2 f710.launch.py namespace:='robot_0' # for a world like cave_multi.world or example.world
+ros2 launch stage_ros2 f710.launch.py namespace:='robot_0' # for a world like cave_multi.world or cave_three_robots.world
 ```
 
 
@@ -40,7 +40,7 @@ run stage_ros2 stage_ros2
 ### without parameters
 ```
 run stage_ros2 stage_ros2  --ros-args --ros-args \
-    -p world_file:=line.world \ 
+    -p world_file:=lines.world \ 
     -p use_static_transformations:=true
 ```
 
