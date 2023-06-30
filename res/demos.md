@@ -1,17 +1,5 @@
-# stage_ros2
-## Examples
+# stage_ros2 Demos
 
-```
-sudo apt-get install git cmake g++ libjpeg8-dev libpng-dev libglu1-mesa-dev libltdl-dev libfltk1.1-dev
-cd YOUR_ROS2_WORKSPACE
-mkdir src
-cd src
-git clone --branch ros2 git@github.com:tuw-robotics/Stage.git
-git clone --branch humble git@github.com:tuw-robotics/stage_ros2.git
-cd YOUR_ROS2_WORKSPACE
-colcon build --symlink-install --cmake-args -DOpenGL_GL_PREFERENCE=LEGACY 
-colcon build --symlink-install --packages-select stage_ros2        
-```
 ## launch files
 
 ### stage
@@ -19,10 +7,22 @@ colcon build --symlink-install --packages-select stage_ros2
 ros2 launch stage_ros2 example.launch.py
 ```
 ### stage and rviz
-an example world with different robot configurations
+demo worlds with different robot configurations and rviz configs
 ```
-ros2 launch stage_ros2 example.launch.py
+ros2 launch stage_ros2 demo.launch.py world:=cave
+ros2 launch stage_ros2 demo.launch.py world:=lines
+ros2 launch stage_ros2 demo.launch.py world:=cave_three_robots
+ros2 launch stage_ros2 demo.launch.py world:=cave_seven_robots
 ```
+<table>
+  <tr>
+    <th><img src="cave.png" width="200px"/> <br>cave</th>
+    <th><img src="lines.png" width="200px"/> <br>lines</th>
+    <th><img src="cave_three_robots.png" width="200px"/> <br>cave_three_robots</th>
+    <th><img src="cave_seven_robots.png" width="200px"/> <br>cave_seven_robots</th>
+  </tr> 
+</table>
+
 ### teleop joy
 
 ```
