@@ -24,7 +24,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
 #include <tf2_ros/transform_broadcaster.h>
-#include <tf2_ros/static_transform_broadcaster.h>
+#include <stage_ros2/static_transform_broadcaster.hpp>
 #include <tf2/transform_datatypes.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -148,7 +148,7 @@ public:
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_ground_truth_;     // one ground truth
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_;     // one cmd_vel subscriber
 
-    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
+    std::shared_ptr<stage_ros2::StaticTransformBroadcaster> tf_static_broadcaster_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   };
 

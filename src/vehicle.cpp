@@ -15,9 +15,6 @@ StageNode::Vehicle::Vehicle(
   StageNode * node)
 : initialized_(false), id_(id), initial_pose_(pose), name_(name), node_(node){
 
-  time_last_pose_update_ = rclcpp::Time(0, 0);
-  time_last_cmd_received_ = rclcpp::Time(0, 0);
-  timeout_cmd_ = rclcpp::Time(0, 0);
 }
 
 size_t StageNode::Vehicle::id() const
@@ -39,7 +36,11 @@ void StageNode::Vehicle::init(bool use_model_name)
 {
   if(initialized_) return;
 
-  tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node_);
+  time_last_pose_update_ = rclcpp::Time(0, 0);
+  time_last_cmd_received_ = rclcpp::Time(0, 0);
+  timeout_cmd_ = rclcpp::Time(0, 0);
+
+  tf_static_broadcaster_ = std::make_shared<stage_ros2::StaticTransformBroadcaster>(node_);
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
 
   name_space_ = std::string();
