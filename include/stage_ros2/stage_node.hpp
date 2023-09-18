@@ -50,7 +50,6 @@ public:
       size_t id_;
       Stg::ModelRanger * model;
       std::shared_ptr<Vehicle> vehicle;
-      StageNode * node;
       std::string topic_name;
       std::string frame_base;
       std::string frame_id;
@@ -62,8 +61,7 @@ public:
 
 public:
       Ranger(
-        unsigned int id, Stg::ModelRanger * m, std::shared_ptr<Vehicle> & vehicle,
-        StageNode * node);
+        unsigned int id, Stg::ModelRanger * m, std::shared_ptr<Vehicle> & vehicle);
       void init(bool add_id_to_topic);
       unsigned int id() const;
       void publish_msg();
@@ -75,7 +73,6 @@ public:
       size_t id_;
       Stg::ModelCamera * model;
       std::shared_ptr<Vehicle> vehicle;
-      StageNode * node;
       geometry_msgs::msg::TransformStamped::SharedPtr transform;
       rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image;             // multiple images
       sensor_msgs::msg::Image::SharedPtr msg_image;
@@ -91,8 +88,7 @@ public:
 
 public:
       Camera(
-        unsigned int id, Stg::ModelCamera * m, std::shared_ptr<Vehicle> & vehicle,
-        StageNode * node);
+        unsigned int id, Stg::ModelCamera * m, std::shared_ptr<Vehicle> & vehicle);
       void init(bool add_id_to_topic);
       unsigned int id() const;
       void publish_msg();
@@ -138,6 +134,9 @@ public:
     void publish_msg();
     void publish_tf();
     void check_watchdog_timeout();
+    StageNode *node(){
+      return node_;
+    }
 
     // stage related models
     Stg::ModelPosition * positionmodel;               // one position

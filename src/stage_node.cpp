@@ -133,7 +133,7 @@ int StageNode::callback_init_stage_model(Stg::Model * mod, StageNode * node)
         auto ranger =
           std::make_shared<Vehicle::Ranger>(
           vehcile->rangers_.size() + 1,
-          dynamic_cast<Stg::ModelRanger *>(mod), vehcile, node);
+          dynamic_cast<Stg::ModelRanger *>(mod), vehcile);
         vehcile->rangers_.push_back(ranger);
       }
     }
@@ -145,7 +145,7 @@ int StageNode::callback_init_stage_model(Stg::Model * mod, StageNode * node)
         auto camera =
           std::make_shared<Vehicle::Camera>(
           vehcile->cameras_.size() + 1,
-          dynamic_cast<Stg::ModelCamera *>(mod), vehcile, node);
+          dynamic_cast<Stg::ModelCamera *>(mod), vehcile);
         vehcile->cameras_.push_back(camera);
       }
     }

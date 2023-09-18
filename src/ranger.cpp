@@ -11,8 +11,8 @@ using std::placeholders::_1;
 
 StageNode::Vehicle::Ranger::Ranger(
   unsigned int id, Stg::ModelRanger * m,
-  std::shared_ptr<Vehicle> & v, StageNode * n)
-: initialized_(false), id_(id), model(m), vehicle(v), node(n) {}
+  std::shared_ptr<Vehicle> & v)
+: initialized_(false), id_(id), model(m), vehicle(v) {}
 
 unsigned int StageNode::Vehicle::Ranger::id() const
 {
@@ -29,7 +29,7 @@ void StageNode::Vehicle::Ranger::init(bool add_id_to_topic)
     frame_id += std::to_string(id());
   }
 
-  pub = node->create_publisher<sensor_msgs::msg::LaserScan>(topic_name, 10);
+  pub = vehicle->node()->create_publisher<sensor_msgs::msg::LaserScan>(topic_name, 10);
   initialized_ = true;
 }
 
@@ -37,7 +37,7 @@ bool StageNode::Vehicle::Ranger::prepare_msg()
 {
   if (msg) {return true;}
   if (model->GetSensors().size() > 1) {
-    RCLCPP_WARN(node->get_logger(), "ROS Stage currently supports rangers with 1 sensor only.");
+    RCLCPP_WARN(vehicle->node()->get_logger(), "ROS Stage currently supports rangers with 1 sensor only.");
   }
   const Stg::ModelRanger::Sensor & sensor = model->GetSensors()[0];  // we use the first sensor data
   if (sensor.ranges.size() == 0) {return false;}
@@ -57,10 +57,6 @@ bool StageNode::Vehicle::Ranger::prepare_msg()
 
 bool StageNode::Vehicle::Ranger::prepare_tf()
 {
-  // Guard 
-  if(!initialized_) return; 
-
-  if (transform) {return true;}
 
   transform = std::make_shared<geometry_msgs::msg::TransformStamped>();
 
@@ -72,9 +68,9 @@ bool StageNode::Vehicle::Ranger::prepare_tf()
     quternion,
     tf2::Vector3(pose.x, pose.y, vehicle->positionmodel->GetGeom().size.z + pose.z));
   *transform = create_transform_stamped(
-    txLaser, node->sim_time_, vehicle->frame_id_base_link_,
+    txLaser, vehicle->node()->sim_time_, vehicle->frame_id_base_link_,
     frame_id);
-  if (node->use_static_transformations_) {
+  if (vehicle->node()->use_static_transformations_) {
     vehicle->tf_static_broadcaster_->sendTransform(*transform);
   }
   return true;
@@ -86,7 +82,7 @@ void StageNode::Vehicle::Ranger::publish_msg()
   if(!initialized_) return; 
 
   if (model->GetSensors().size() > 1) {
-    RCLCPP_WARN(node->get_logger(), "ROS Stage currently supports rangers with 1 sensor only.");
+    RCLCPP_WARN(vehicle->node()->get_logger(), "ROS Stage currently supports rangers with 1 sensor only.");
   }
 
   // for now we access only the zeroth sensor of the ranger - good
@@ -94,7 +90,7 @@ void StageNode::Vehicle::Ranger::publish_msg()
   const Stg::ModelRanger::Sensor & sensor = model->GetSensors()[0];  // we use the first sensor data
 
   if (prepare_msg()) {
-    msg->header.stamp = node->sim_time_;
+    msg->header.stamp = vehicle->node()->sim_time_;
     for (unsigned int i = 0; i < sensor.ranges.size(); i++) {
       msg->ranges[i] = sensor.ranges[i];
       msg->intensities[i] = sensor.intensities[i];
@@ -105,15 +101,12 @@ void StageNode::Vehicle::Ranger::publish_msg()
 
 void StageNode::Vehicle::Ranger::publish_tf()
 {
-  // Guard 
-  if(!initialized_) return; 
-
   if (prepare_tf()) {
 
-    if (node->use_static_transformations_) {return;}
+    if (vehicle->node()->use_static_transformations_) {return;}
 
     // use tf publsiher only if use_static_transformations_ is false
-    transform->header.stamp = node->sim_time_;
+    transform->header.stamp = vehicle->node()->sim_time_;
     vehicle->tf_broadcaster_->sendTransform(*transform);
   }
 }

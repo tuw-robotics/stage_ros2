@@ -13,8 +13,8 @@ using std::placeholders::_1;
 
 StageNode::Vehicle::Camera::Camera(
   unsigned int id, Stg::ModelCamera * m,
-  std::shared_ptr<Vehicle> & v, StageNode * n)
-: initialized_(false), id_(id), model(m), vehicle(v), node(n) {}
+  std::shared_ptr<Vehicle> & v)
+: initialized_(false), id_(id), model(m), vehicle(v) {}
 
 unsigned int StageNode::Vehicle::Camera::id() const
 {
@@ -37,9 +37,9 @@ void StageNode::Vehicle::Camera::init(bool add_id_to_topic)
     frame_id += std::to_string(id());
   }
 
-  pub_image = node->create_publisher<sensor_msgs::msg::Image>(topic_name_image, 10);
-  pub_camera = node->create_publisher<sensor_msgs::msg::CameraInfo>(topic_name_camera_info, 10);
-  pub_depth = node->create_publisher<sensor_msgs::msg::Image>(topic_name_depth, 10);
+  pub_image = vehicle->node()->create_publisher<sensor_msgs::msg::Image>(topic_name_image, 10);
+  pub_camera = vehicle->node()->create_publisher<sensor_msgs::msg::CameraInfo>(topic_name_camera_info, 10);
+  pub_depth = vehicle->node()->create_publisher<sensor_msgs::msg::Image>(topic_name_depth, 10);
   initialized_ = true;
 }
 bool StageNode::Vehicle::Camera::prepare_msg_image()
@@ -74,10 +74,10 @@ bool StageNode::Vehicle::Camera::prepare_msg_depth()
   msg_depth->height = model->getHeight();
   msg_depth->width = model->getWidth();
   msg_depth->encoding =
-    node->isDepthCanonical_ ? sensor_msgs::image_encodings::TYPE_32FC1 : sensor_msgs::
+    vehicle->node()->isDepthCanonical_ ? sensor_msgs::image_encodings::TYPE_32FC1 : sensor_msgs::
     image_encodings::TYPE_16UC1;
   // node->depthMsgs[r].is_bigendian="";
-  int sz = node->isDepthCanonical_ ? sizeof(float) : sizeof(uint16_t);
+  int sz = vehicle->node()->isDepthCanonical_ ? sizeof(float) : sizeof(uint16_t);
   size_t len = msg_depth->width * msg_depth->height;
   msg_depth->step = msg_depth->width * sz;
   msg_depth->data.resize(len * sz);
@@ -94,7 +94,7 @@ bool StageNode::Vehicle::Camera::prepare_msg_camera()
   }
   msg_camera = std::make_shared<sensor_msgs::msg::CameraInfo>();
   msg_camera->header.frame_id = frame_id;
-  msg_camera->header.stamp = node->sim_time_;
+  msg_camera->header.stamp = vehicle->node()->sim_time_;
   msg_camera->height = model->getHeight();
   msg_camera->width = model->getWidth();
 
@@ -141,7 +141,7 @@ void StageNode::Vehicle::Camera::publish_msg()
 {
   // Guard 
   if(!initialized_) return; 
-  
+
   // Translate into ROS message format and publish
   if (prepare_msg_image()) {
 
@@ -158,14 +158,14 @@ void StageNode::Vehicle::Camera::publish_msg()
         &(msg_image->data[(msg_image->height - y - 1) * msg_image->step]), temp,
         msg_image->step);
     }
-    msg_image->header.stamp = node->sim_time_;
+    msg_image->header.stamp = vehicle->node()->sim_time_;
     pub_image->publish(*msg_image);
   }
 
   // Translate into ROS message format and publish
   if (prepare_msg_depth()) {
     // processing data according to REP118
-    if (node->isDepthCanonical_) {
+    if (vehicle->node()->isDepthCanonical_) {
       float nearClip = model->getCamera().nearClip();
       float farClip = model->getCamera().farClip();
       memcpy(&(msg_depth->data[0]), model->FrameDepth(), msg_depth->data.size());
@@ -205,13 +205,13 @@ void StageNode::Vehicle::Camera::publish_msg()
     }
 
     msg_depth->header.frame_id = frame_id;
-    msg_depth->header.stamp = node->sim_time_;
+    msg_depth->header.stamp = vehicle->node()->sim_time_;
     pub_depth->publish(*msg_depth);
   }
 
   // Translate into ROS message format and publish
   if (prepare_msg_camera()) {
-    msg_camera->header.stamp = node->sim_time_;
+    msg_camera->header.stamp = vehicle->node()->sim_time_;
     pub_camera->publish(*msg_camera);
   }
 }
@@ -233,8 +233,8 @@ bool StageNode::Vehicle::Camera::prepare_tf()
     quternion,
     tf2::Vector3(pose.x, pose.y, vehicle->positionmodel->GetGeom().size.z + pose.z));
   *transform =
-    create_transform_stamped(tr, node->sim_time_, vehicle->frame_id_base_link_, frame_id);
-  if (node->use_static_transformations_) {
+    create_transform_stamped(tr, vehicle->node()->sim_time_, vehicle->frame_id_base_link_, frame_id);
+  if (vehicle->node()->use_static_transformations_) {
     vehicle->tf_static_broadcaster_->sendTransform(*transform);
   }
   return true;
@@ -243,10 +243,10 @@ void StageNode::Vehicle::Camera::publish_tf()
 {
   if (prepare_tf()) {
 
-    if (node->use_static_transformations_) {return;}
+    if (vehicle->node()->use_static_transformations_) {return;}
 
     // use tf publsiher only if use_static_transformations_ is false
-    transform->header.stamp = node->sim_time_;
+    transform->header.stamp = vehicle->node()->sim_time_;
     vehicle->tf_broadcaster_->sendTransform(*transform);
   }
 }
