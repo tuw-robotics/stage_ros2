@@ -12,7 +12,7 @@ using std::placeholders::_1;
 StageNode::Vehicle::Ranger::Ranger(
   unsigned int id, Stg::ModelRanger * m,
   std::shared_ptr<Vehicle> & v, StageNode * n)
-: id_(id), model(m), vehicle(v), node(n) {}
+: initialized_(false), id_(id), model(m), vehicle(v), node(n) {}
 
 unsigned int StageNode::Vehicle::Ranger::id() const
 {
@@ -20,6 +20,7 @@ unsigned int StageNode::Vehicle::Ranger::id() const
 }
 void StageNode::Vehicle::Ranger::init(bool add_id_to_topic)
 {
+  if(initialized_) return; 
   model->Subscribe();
   topic_name = vehicle->name_space_ + TOPIC_LASER;
   frame_id = vehicle->name_space_ + FRAME_LASER;
@@ -29,6 +30,7 @@ void StageNode::Vehicle::Ranger::init(bool add_id_to_topic)
   }
 
   pub = node->create_publisher<sensor_msgs::msg::LaserScan>(topic_name, 10);
+  initialized_ = true;
 }
 
 bool StageNode::Vehicle::Ranger::prepare_msg()
@@ -55,6 +57,9 @@ bool StageNode::Vehicle::Ranger::prepare_msg()
 
 bool StageNode::Vehicle::Ranger::prepare_tf()
 {
+  // Guard 
+  if(!initialized_) return; 
+
   if (transform) {return true;}
 
   transform = std::make_shared<geometry_msgs::msg::TransformStamped>();
@@ -77,6 +82,9 @@ bool StageNode::Vehicle::Ranger::prepare_tf()
 
 void StageNode::Vehicle::Ranger::publish_msg()
 {
+  // Guard 
+  if(!initialized_) return; 
+
   if (model->GetSensors().size() > 1) {
     RCLCPP_WARN(node->get_logger(), "ROS Stage currently supports rangers with 1 sensor only.");
   }
@@ -97,6 +105,9 @@ void StageNode::Vehicle::Ranger::publish_msg()
 
 void StageNode::Vehicle::Ranger::publish_tf()
 {
+  // Guard 
+  if(!initialized_) return; 
+
   if (prepare_tf()) {
 
     if (node->use_static_transformations_) {return;}

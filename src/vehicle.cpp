@@ -13,10 +13,8 @@ using std::placeholders::_1;
 StageNode::Vehicle::Vehicle(
   size_t id, const Stg::Pose & pose, const std::string & name,
   StageNode * node)
-: id_(id), initial_pose_(pose), name_(name), node_(node)
-{
-  tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node_);
-  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
+: initialized_(false), id_(id), initial_pose_(pose), name_(name), node_(node){
+
   time_last_pose_update_ = rclcpp::Time(0, 0);
   time_last_cmd_received_ = rclcpp::Time(0, 0);
   timeout_cmd_ = rclcpp::Time(0, 0);
@@ -39,6 +37,11 @@ const std::string & StageNode::Vehicle::name() const
 
 void StageNode::Vehicle::init(bool use_model_name)
 {
+  if(initialized_) return;
+
+  tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node_);
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
+
   name_space_ = std::string();
   if (use_model_name) {name_space_ = name() + "/";}
   frame_id_base_link_ = name_space_ + node_->frame_id_base_link_name_;
@@ -66,10 +69,13 @@ void StageNode::Vehicle::init(bool use_model_name)
   for (std::shared_ptr<Camera> camera: cameras_) {
     camera->init(rangers_.size() > 1);
   }
+  initialized_ = true;
 }
 
 void StageNode::Vehicle::publish_msg()
 {
+  // Guard 
+  if(!initialized_) return; 
 
   // Get latest odometry data
   // Translate into ROS message format and publish

@@ -46,7 +46,7 @@ private:
 public:
     class Ranger
     {
-
+      bool initialized_;
       size_t id_;
       Stg::ModelRanger * model;
       std::shared_ptr<Vehicle> vehicle;
@@ -71,6 +71,7 @@ public:
     };
     class Camera
     {
+      bool initialized_;
       size_t id_;
       Stg::ModelCamera * model;
       std::shared_ptr<Vehicle> vehicle;
@@ -103,6 +104,7 @@ public:
     };
 
 private:
+    bool initialized_;
     size_t id_;
     Stg::Pose initial_pose_;
     std::string name_;     /// used for the ros publisher

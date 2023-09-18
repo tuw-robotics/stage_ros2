@@ -14,7 +14,7 @@ using std::placeholders::_1;
 StageNode::Vehicle::Camera::Camera(
   unsigned int id, Stg::ModelCamera * m,
   std::shared_ptr<Vehicle> & v, StageNode * n)
-: id_(id), model(m), vehicle(v), node(n) {}
+: initialized_(false), id_(id), model(m), vehicle(v), node(n) {}
 
 unsigned int StageNode::Vehicle::Camera::id() const
 {
@@ -23,6 +23,7 @@ unsigned int StageNode::Vehicle::Camera::id() const
 
 void StageNode::Vehicle::Camera::init(bool add_id_to_topic)
 {
+  if(initialized_) return;
   model->Subscribe();
   topic_name_image = vehicle->name_space_ + TOPIC_IMAGE;
   topic_name_camera_info = vehicle->name_space_ + TOPIC_CAMERA_INFO;
@@ -39,6 +40,7 @@ void StageNode::Vehicle::Camera::init(bool add_id_to_topic)
   pub_image = node->create_publisher<sensor_msgs::msg::Image>(topic_name_image, 10);
   pub_camera = node->create_publisher<sensor_msgs::msg::CameraInfo>(topic_name_camera_info, 10);
   pub_depth = node->create_publisher<sensor_msgs::msg::Image>(topic_name_depth, 10);
+  initialized_ = true;
 }
 bool StageNode::Vehicle::Camera::prepare_msg_image()
 {
@@ -137,6 +139,9 @@ bool StageNode::Vehicle::Camera::prepare_msg()
 
 void StageNode::Vehicle::Camera::publish_msg()
 {
+  // Guard 
+  if(!initialized_) return; 
+  
   // Translate into ROS message format and publish
   if (prepare_msg_image()) {
 
