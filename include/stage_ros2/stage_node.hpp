@@ -23,8 +23,8 @@
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
-#include <tf2_ros/transform_broadcaster.h>
-#include <stage_ros2/static_transform_broadcaster.hpp>
+#include <stage_ros2/transform_broadcaster.h>
+#include <stage_ros2/static_transform_broadcaster.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -111,9 +111,12 @@ private:
     // Last time we saved global position (for velocity calculation).
     rclcpp::Time time_last_pose_update_;
 
-    std::string name_space_;
+    std::string topic_name_space_;
+    std::string frame_name_space_;
     std::string topic_name_cmd_;
 
+    std::string topic_name_tf_;
+    std::string topic_name_tf_static_;
     std::string topic_name_odom_;
     std::string topic_name_ground_truth_;
     std::string frame_id_odom_;
@@ -129,7 +132,7 @@ public:
     size_t id() const;
     const std::string & name() const;
     const std::string & name_space() const;
-    void init(bool use_model_name);
+    void init(bool use_topic_prefixes, bool use_one_tf_tree);
     void callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg);
     void publish_msg();
     void publish_tf();
@@ -149,7 +152,7 @@ public:
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_;     // one cmd_vel subscriber
 
     std::shared_ptr<stage_ros2::StaticTransformBroadcaster> tf_static_broadcaster_;
-    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    std::shared_ptr<stage_ros2::TransformBroadcaster> tf_broadcaster_;
   };
 
   /// vector to hold the simulated vehicles with ros interfaces
@@ -157,7 +160,8 @@ public:
 
 
   bool isDepthCanonical_;                  /// ROS parameter
-  bool use_model_names;                    /// ROS parameter
+  bool enforce_prefixes_;                  /// ROS parameter
+  bool one_tf_tree_;                       /// ROS parameter
   bool enable_gui_;                        /// ROS parameter
   bool publish_ground_truth_;              /// ROS parameter
   bool use_static_transformations_;        /// ROS parameter
@@ -167,7 +171,7 @@ public:
   std::string frame_id_base_link_name_;    /// ROS parameter
 
   // TF broadcaster to publish the robot odom
-  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_;
+  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_stage_;
 
   // Service to listening on soft reset signals
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr srv_reset_;

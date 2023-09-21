@@ -7,7 +7,7 @@
 StageNode::StageNode(rclcpp::NodeOptions options)
 : Node("stage_ros2", options), base_watchdog_timeout_(0, 0)
 {
-  tf_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+  tf_broadcaster_stage_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
   declare_parameters();
 }
 
@@ -22,10 +22,16 @@ void StageNode::declare_parameters()
   param_desc_enable_gui.description = "Enable GUI!";
   this->declare_parameter<bool>("enable_gui", true, param_desc_enable_gui);
 
-  auto param_desc_model_names = rcl_interfaces::msg::ParameterDescriptor{};
-  param_desc_model_names.description =
-    "USE model name as name space prefix! True on more than one vehicle!";
-  this->declare_parameter<bool>("use_model_names", false, param_desc_model_names);
+  auto param_desc_enforce_prefixes = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_enforce_prefixes.description =
+    "on true it enforces prefixes on topic even with one robot";
+  this->declare_parameter<bool>("enforce_prefixes", false, param_desc_enforce_prefixes);
+
+
+  auto param_desc_one_tf_tree = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_one_tf_tree.description =
+    "On true: all tfs are publishe on /tf and /tf_static!";
+  this->declare_parameter<bool>("one_tf_tree", false, param_desc_one_tf_tree);
 
   auto param_desc_use_static_transformations_ = rcl_interfaces::msg::ParameterDescriptor{};
   param_desc_use_static_transformations_.description =
@@ -72,7 +78,8 @@ void StageNode::update_parameters()
 {
   double base_watchdog_timeout_sec{5.0};
   this->get_parameter("enable_gui", this->enable_gui_);
-  this->get_parameter("use_model_names", this->use_model_names);
+  this->get_parameter("enforce_prefixes", this->enforce_prefixes_);
+  this->get_parameter("one_tf_tree", this->one_tf_tree_);
   this->get_parameter("base_watchdog_timeout", base_watchdog_timeout_sec);
   this->base_watchdog_timeout_ = rclcpp::Duration::from_seconds(base_watchdog_timeout_sec);
   this->get_parameter("is_depth_canonical", this->isDepthCanonical_);
@@ -242,7 +249,8 @@ int StageNode::SubscribeModels()
 {
   for (std::shared_ptr<Vehicle> vehicle: this->vehicles_) {
     // init topics and use the stage models names if there are more than one vehicle in the world
-    vehicle->init(this->use_model_names || (vehicles_.size() > 1));
+    bool use_topic_prefix = this->enforce_prefixes_ || (vehicles_.size() > 1); // a prefixes are enforced
+    vehicle->init(use_topic_prefix, this->one_tf_tree_);
   }
 
   // create the clock publisher

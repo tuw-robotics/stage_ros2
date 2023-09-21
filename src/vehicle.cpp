@@ -4,6 +4,8 @@
 #include <memory>
 #include <filesystem>
 
+#define TOPIC_TF "tf"
+#define TOPIC_TF_STATIC "tf_static"
 #define TOPIC_ODOM "odom"
 #define TOPIC_GROUND_TRUTH "ground_truth"
 #define TOPIC_CMD_VEL "cmd_vel"
@@ -11,10 +13,10 @@
 using std::placeholders::_1;
 
 StageNode::Vehicle::Vehicle(
-  size_t id, const Stg::Pose & pose, const std::string & name,
-  StageNode * node)
-: initialized_(false), id_(id), initial_pose_(pose), name_(name), node_(node){
-
+    size_t id, const Stg::Pose &pose, const std::string &name,
+    StageNode *node)
+    : initialized_(false), id_(id), initial_pose_(pose), name_(name), node_(node)
+{
 }
 
 size_t StageNode::Vehicle::id() const
@@ -27,47 +29,64 @@ void StageNode::Vehicle::soft_reset()
   positionmodel->SetStall(false);
 }
 
-const std::string & StageNode::Vehicle::name() const
+const std::string &StageNode::Vehicle::name() const
 {
   return name_;
 }
 
-void StageNode::Vehicle::init(bool use_model_name)
+void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
 {
-  if(initialized_) return;
+  if (initialized_)
+    return;
 
   time_last_pose_update_ = rclcpp::Time(0, 0);
   time_last_cmd_received_ = rclcpp::Time(0, 0);
   timeout_cmd_ = rclcpp::Time(0, 0);
 
-  tf_static_broadcaster_ = std::make_shared<stage_ros2::StaticTransformBroadcaster>(node_);
-  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
+  topic_name_space_ = std::string();
+  frame_name_space_ = std::string();
+  if (use_topic_prefixes == true)
+  {
+    topic_name_space_ = name() + "/";
+  }
+  if (use_one_tf_tree)
+  {
+    frame_name_space_ = name() + "/";
+    topic_name_tf_ = std::string("/") + TOPIC_TF;
+    topic_name_tf_static_ =  std::string("/") + TOPIC_TF_STATIC;
+  } else {
+    topic_name_tf_ = topic_name_space_ + TOPIC_TF;
+    topic_name_tf_static_ = topic_name_space_ + TOPIC_TF_STATIC;
+  }
 
-  name_space_ = std::string();
-  if (use_model_name) {name_space_ = name() + "/";}
-  frame_id_base_link_ = name_space_ + node_->frame_id_base_link_name_;
-  frame_id_odom_ = name_space_ + node_->frame_id_odom_name_;
-  frame_id_world_ = name_space_ + node_->frame_id_world_name_;
+  frame_id_base_link_ = frame_name_space_ + node_->frame_id_base_link_name_;
+  frame_id_odom_ = frame_name_space_ + node_->frame_id_odom_name_;
+  frame_id_world_ = frame_name_space_ + node_->frame_id_world_name_;
 
-  topic_name_odom_ = name_space_ + TOPIC_ODOM;
-  topic_name_ground_truth_ = name_space_ + TOPIC_GROUND_TRUTH;
-  topic_name_cmd_ = name_space_ + TOPIC_CMD_VEL;
+  topic_name_odom_ = topic_name_space_ + TOPIC_ODOM;
+  topic_name_ground_truth_ = topic_name_space_ + TOPIC_GROUND_TRUTH;
+  topic_name_cmd_ = topic_name_space_ + TOPIC_CMD_VEL;
+
+  tf_static_broadcaster_ = std::make_shared<stage_ros2::StaticTransformBroadcaster>(node_, topic_name_tf_.c_str());
+  tf_broadcaster_ = std::make_shared<stage_ros2::TransformBroadcaster>(node_, topic_name_tf_static_.c_str());
 
   pub_odom_ = node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_odom_, 10);
   pub_ground_truth_ =
-    node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_ground_truth_, 10);
+      node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_ground_truth_, 10);
   sub_cmd_ =
-    node_->create_subscription<geometry_msgs::msg::Twist>(
-    topic_name_cmd_, 10,
-    std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
+      node_->create_subscription<geometry_msgs::msg::Twist>(
+          topic_name_cmd_, 10,
+          std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
 
   positionmodel->Subscribe();
 
-  for (std::shared_ptr<Ranger> ranger: rangers_) {
+  for (std::shared_ptr<Ranger> ranger : rangers_)
+  {
     ranger->init(rangers_.size() > 1);
   }
 
-  for (std::shared_ptr<Camera> camera: cameras_) {
+  for (std::shared_ptr<Camera> camera : cameras_)
+  {
     camera->init(rangers_.size() > 1);
   }
   initialized_ = true;
@@ -75,8 +94,9 @@ void StageNode::Vehicle::init(bool use_model_name)
 
 void StageNode::Vehicle::publish_msg()
 {
-  // Guard 
-  if(!initialized_) return; 
+  // Guard
+  if (!initialized_)
+    return;
 
   // Get latest odometry data
   // Translate into ROS message format and publish
@@ -101,17 +121,21 @@ void StageNode::Vehicle::publish_msg()
   // Velocity is 0 by default and will be set only if there is previous pose and time delta>0
   // @ToDo uising the positionmodel->GetVelocity() a self computed delta
   Stg::Velocity gvel(0, 0, 0, 0);
-  if (global_pose_) {
+  if (global_pose_)
+  {
     double dT = (node_->sim_time_ - time_last_pose_update_).seconds();
-    if (dT > 0) {
+    if (dT > 0)
+    {
       gvel = Stg::Velocity(
-        (gpose.x - global_pose_->x) / dT,
-        (gpose.y - global_pose_->y) / dT,
-        (gpose.z - global_pose_->z) / dT,
-        Stg::normalize(gpose.a - global_pose_->a) / dT);
+          (gpose.x - global_pose_->x) / dT,
+          (gpose.y - global_pose_->y) / dT,
+          (gpose.z - global_pose_->z) / dT,
+          Stg::normalize(gpose.a - global_pose_->a) / dT);
     }
     *global_pose_ = gpose;
-  } else {
+  }
+  else
+  {
     // There are no previous readings, adding current pose...
     global_pose_ = std::make_shared<Stg::Pose>(gpose);
   }
@@ -133,33 +157,34 @@ void StageNode::Vehicle::publish_msg()
 
   pub_ground_truth_->publish(ground_truth_msg);
   time_last_pose_update_ = node_->sim_time_;
-
 }
 void StageNode::Vehicle::publish_tf()
 {
 
   // broadcast odometry transform
   tf2::Quaternion quaternion = tf2::Quaternion(
-    msg_odom_.pose.pose.orientation.x,
-    msg_odom_.pose.pose.orientation.y,
-    msg_odom_.pose.pose.orientation.z,
-    msg_odom_.pose.pose.orientation.w);
+      msg_odom_.pose.pose.orientation.x,
+      msg_odom_.pose.pose.orientation.y,
+      msg_odom_.pose.pose.orientation.z,
+      msg_odom_.pose.pose.orientation.w);
   tf2::Transform transform(quaternion,
-    tf2::Vector3(msg_odom_.pose.pose.position.x, msg_odom_.pose.pose.position.y, 0.0));
-  node_->tf_->sendTransform(
-    create_transform_stamped(
-      transform, node_->sim_time_,
-      frame_id_odom_,
-      frame_id_base_link_));
+                           tf2::Vector3(msg_odom_.pose.pose.position.x, msg_odom_.pose.pose.position.y, 0.0));
+  tf_broadcaster_->sendTransform(
+      create_transform_stamped(
+          transform, node_->sim_time_,
+          frame_id_odom_,
+          frame_id_base_link_));
 }
 
 void StageNode::Vehicle::check_watchdog_timeout()
 {
 
-  if ((timeout_cmd_ != rclcpp::Time(0, 0)) && (node_->sim_time_ > timeout_cmd_)) {
+  if ((timeout_cmd_ != rclcpp::Time(0, 0)) && (node_->sim_time_ > timeout_cmd_))
+  {
     Stg::Velocity v = positionmodel->GetVelocity();
     // stopping makes only sense if the vehicle drives
-    if (!positionmodel->GetVelocity().IsZero()) {
+    if (!positionmodel->GetVelocity().IsZero())
+    {
       this->positionmodel->SetSpeed(0.0, 0.0, 0.0);
       RCLCPP_INFO(node_->get_logger(), "watchdog timeout on %s", name().c_str());
     }
@@ -169,10 +194,9 @@ void StageNode::Vehicle::callback_cmd(const geometry_msgs::msg::Twist::SharedPtr
 {
   std::scoped_lock lock(node_->msg_lock);
   this->positionmodel->SetSpeed(
-    msg->linear.x,
-    msg->linear.y,
-    msg->angular.z);
+      msg->linear.x,
+      msg->linear.y,
+      msg->angular.z);
   time_last_cmd_received_ = node_->sim_time_;
   timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
-
 }

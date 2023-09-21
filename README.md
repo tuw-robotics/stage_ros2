@@ -4,7 +4,7 @@
 
 <div align="center">
 <img src="res/cave_three_robots_with_rviz.jpg" alt="stage and rviz with laser, tf, and cameras" width="800px" /><br>
-screenshot after: <b>ros2 launch stage_ros2 demo.launch.py world:=cave_three_robots</b> on <i>Ubuntu 22.04</i> with ros2 <i>humble</i>
+screenshot after: <b>ros2 launch stage_ros2 demo.launch.py world:=cave_three_robots one_tf_tree:=true</b> on <i>Ubuntu 22.04</i> with ros2 <i>humble</i>
 </div>
 
 ## Thanks

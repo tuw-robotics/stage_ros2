@@ -25,10 +25,10 @@ void StageNode::Vehicle::Camera::init(bool add_id_to_topic)
 {
   if(initialized_) return;
   model->Subscribe();
-  topic_name_image = vehicle->name_space_ + TOPIC_IMAGE;
-  topic_name_camera_info = vehicle->name_space_ + TOPIC_CAMERA_INFO;
-  topic_name_depth = vehicle->name_space_ + TOPIC_DEPTH;
-  frame_id = vehicle->name_space_ + FRAME_CAMERA;
+  topic_name_image = vehicle->topic_name_space_ + TOPIC_IMAGE;
+  topic_name_camera_info = vehicle->topic_name_space_ + TOPIC_CAMERA_INFO;
+  topic_name_depth = vehicle->topic_name_space_ + TOPIC_DEPTH;
+  frame_id = vehicle->frame_name_space_ + FRAME_CAMERA;
 
   if (add_id_to_topic) {
     topic_name_image += std::to_string(id());
