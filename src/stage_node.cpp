@@ -96,6 +96,11 @@ void StageNode::update_parameters()
     exit(0);
   }
 
+  if (this->one_tf_tree_){
+    RCLCPP_WARN(
+      this->get_logger(), "The parameter one_tf_tree is set but deprecated and will be removed in later versions");
+  }
+
   callback_update_parameters();
 
   using namespace std::chrono_literals;
