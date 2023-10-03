@@ -19,6 +19,7 @@ One TF-tree after: <br># <b>ros2 launch stage_ros2 demo.launch.py world:=cave_th
 <table style="width:800px;"><td>
 Multiple TF-trees after with two rviz nodes for robot_0 and robot_1: <br># <b>ros2 launch stage_ros2 stage.launch.py world:=cave_three_robots one_tf_tree:=false</b> 
 <br># <b>ros2 launch stage_ros2 rviz_ns.launch.py config:=robot_ns namespace:=robot_0</b>
+<br># <b>ros2 launch stage_ros2 rviz_ns.launch.py config:=robot_ns namespace:=robot_1</b>
 <br>on <i>Ubuntu 22.04</i> with ros2 <i>humble</i>
 </td></table> 
 </div>
