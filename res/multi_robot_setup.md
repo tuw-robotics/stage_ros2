@@ -32,5 +32,31 @@ On the other site, it simplifies the configuration overhead because one just nee
 ### Demo: one TF-tree on /tf
 <div align="center">
 <img src="cave_three_robots_with_rviz.jpg" alt="stage and rviz with laser, tf, and cameras" width="800px" /><br>
-screenshot after: <b>ros2 launch stage_ros2 demo.launch.py world:=cave_three_robots one_tf_tree:=true</b> on <i>Ubuntu 22.04</i> with ros2 <i>humble</i>
+<table style="width:800px;"><td>
+One TF-tree after: <br># <b>ros2 launch stage_ros2 demo.launch.py world:=cave_three_robots one_tf_tree:=true</b> 
+<br>on <i>Ubuntu 22.04</i> with ros2 <i>humble</i>
+</td></table> 
+</div>
+
+
+### Demo: multiple TF-trees on /robot_0/tf, /robot_1/tf, /robot_2/tf
+<div align="center">
+<img src="cave_three_robots_multiple_tf_trees.jpg" alt="stage and rviz with laser, tf, and cameras" width="800px" /><br>
+<table style="width:800px;"><td>
+Multiple TF-trees after: 
+<br># <b>ros2 launch stage_ros2 stage.launch.py world:=cave_three_robots one_tf_tree:=false</b> 
+<br># <b>ros2 launch stage_ros2 rviz_ns.launch.py config:=robot_ns namespace:=robot_0</b>
+<br># <b>ros2 launch stage_ros2 rviz_ns.launch.py config:=robot_ns namespace:=robot_1</b>
+<br># <b>ros2 run mouse_teleop mouse_teleop -r __ns:=/robot_1 --ros-args --remap mouse_vel:=cmd_vel</b>
+<br> on <i>Ubuntu 22.04</i> with ros2 <i>humble</i>
+</td></table> 
+</div>
+
+#### no root slash
+It is important to say that there are no root slashes on the subscribed topics in rviz2. Because the rviz config is using a namespace. 
+<div align="center">
+<img src="cave_three_robots_multiple_tf_trees_info.jpg" alt="stage and rviz with laser, tf, and cameras" width="800px" /><br>
+<table style="width:800px;"><td>
+No root slashes: 
+</td></table> 
 </div>

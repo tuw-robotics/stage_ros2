@@ -14,6 +14,15 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time',  default='true')
     this_directory = get_package_share_directory('stage_ros2')
 
+    namespace = LaunchConfiguration('namespace')
+    namespace_arg = DeclareLaunchArgument('namespace', default_value=TextSubstitution(text=''))
+
+    rviz_config = LaunchConfiguration('config')
+    rviz_config_arg = DeclareLaunchArgument(
+        'config',
+        default_value=TextSubstitution(text='empty'),
+        description='Use empty, cave or roblab to load a TUW enviroment')
+    
     def rviz_launch_configuration(context):
         file = os.path.join(
             this_directory,
@@ -21,12 +30,7 @@ def generate_launch_description():
             context.launch_configurations['config'] + '.rviz')
         return [SetLaunchConfiguration('config', file)]
 
-    namespace_arg = DeclareLaunchArgument('namespace', default_value=TextSubstitution(text=''))
     rviz_launch_configuration_arg = OpaqueFunction(function=rviz_launch_configuration)
-    rviz_config_arg = DeclareLaunchArgument(
-        'config',
-        default_value=TextSubstitution(text='empty'),
-        description='Use empty, cave or roblab to load a TUW enviroment')
 
     return LaunchDescription([
         namespace_arg,
@@ -34,10 +38,10 @@ def generate_launch_description():
         rviz_launch_configuration_arg,
         Node(
             package='rviz2',
-            namespace=LaunchConfiguration('namespace'),
+            namespace=namespace,
             executable='rviz2',
             name='rviz2',
-            arguments=['-d', [LaunchConfiguration('config')]],
+            arguments=['-d', [rviz_config]],
             parameters=[{
                 "use_sim_time": use_sim_time}],
         )
