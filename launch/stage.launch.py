@@ -25,6 +25,11 @@ def generate_launch_description():
         default_value='false',
         description='on true a prefixes are used for a single robot environment')
     
+    use_static_transformations = LaunchConfiguration('use_static_transformations')
+    use_static_transformations_arg = DeclareLaunchArgument(
+        'use_static_transformations',
+        default_value='true',
+        description='Use static transformations for sensor frames!')
 
     one_tf_tree = LaunchConfiguration('one_tf_tree')
     one_tf_tree_arg = DeclareLaunchArgument(
@@ -45,6 +50,7 @@ def generate_launch_description():
         stage_world_arg,
         one_tf_tree_arg, 
         enforce_prefixes_arg, 
+        use_static_transformations_arg, 
         stage_world_configuration_arg,
         Node(
             package='stage_ros2',
@@ -52,6 +58,7 @@ def generate_launch_description():
             name='stage',
             parameters=[{'one_tf_tree': one_tf_tree,
                         'enforce_prefixes': enforce_prefixes,
+                        'use_static_transformations': use_static_transformations,
                 "world_file": [LaunchConfiguration('world_file')]}],
         )
     ])

@@ -67,8 +67,8 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
   topic_name_ground_truth_ = topic_name_space_ + TOPIC_GROUND_TRUTH;
   topic_name_cmd_ = topic_name_space_ + TOPIC_CMD_VEL;
 
-  tf_static_broadcaster_ = std::make_shared<stage_ros2::StaticTransformBroadcaster>(node_, topic_name_tf_.c_str());
-  tf_broadcaster_ = std::make_shared<stage_ros2::TransformBroadcaster>(node_, topic_name_tf_static_.c_str());
+  tf_static_broadcaster_ = std::make_shared<stage_ros2::StaticTransformBroadcaster>(node_, topic_name_tf_static_.c_str());
+  tf_broadcaster_ = std::make_shared<stage_ros2::TransformBroadcaster>(node_, topic_name_tf_.c_str());
 
   pub_odom_ = node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_odom_, 10);
   pub_ground_truth_ =
