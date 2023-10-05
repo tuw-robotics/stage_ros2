@@ -21,7 +21,6 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetLaunchConfi
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch_ros.actions import Node
-from nav2_common.launch import ReplaceString
 
 
 def generate_launch_description():

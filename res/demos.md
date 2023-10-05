@@ -4,10 +4,13 @@
 
 ### stage
 ```
-ros2 launch stage_ros2 demo.launch.py
+## with /tf
+ros2 launch stage_ros2 stage.launch.py world:=cave enforce_prefixes:=false one_tf_tree:=true
+## with /robot_0/tf
+ros2 launch stage_ros2 stage.launch.py world:=cave enforce_prefixes:=true one_tf_tree:=false
 ```
 ### stage and rviz
-demo worlds with different robot configurations and rviz configs
+demo worlds with different robot configurations and rviz configs with __one tf tree__
 ```
 ros2 launch stage_ros2 demo.launch.py world:=cave
 ros2 launch stage_ros2 demo.launch.py world:=lines
@@ -35,13 +38,16 @@ ros2 launch stage_ros2 f710.launch.py namespace:='robot_0' # for a world like ca
 ### without parameters
 it will start the cave.world
 ```
-run stage_ros2 stage_ros2 
+ros2 run stage_ros2 stage_ros2 
 ```
-### without parameters
+### with parameters
 ```
-run stage_ros2 stage_ros2  --ros-args --ros-args \
-    -p world_file:=lines.world \ 
-    -p use_static_transformations:=true
+cd stage_ros2/world
+ros2 run stage_ros2 stage_ros2  --ros-args --ros-args \
+    -p world_file:=lines.world \
+    -p use_static_transformations:=true \
+    -p enforce_prefixes:=true \
+    -p one_tf_tree:=false
 ```
 
 ## SoftReset
