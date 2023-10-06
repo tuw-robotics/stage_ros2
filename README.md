@@ -1,6 +1,6 @@
 # stage_ros2
-<span style="color:red">Update September 2023:</span> 
- We are supporting now [multiple tf topics](res/multi_robot_setup.md).
+This is a  ROS bridge for the robot simulator [Stage](https://github.com/rtv/Stage).
+It supports multiple robots with one or multiple tf-trees.
 
 * [install](res/install.md)
 * [run demos](res/demos.md)
