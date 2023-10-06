@@ -6,7 +6,18 @@
 * [run demos](res/demos.md)
 * [handling multiple vehickes](res/multi_robot_setup.md)
 
-### multiple tf-tree support
+## Single Robot Support
+This stage ROS bridge can be configured to use a namespace even for one robot.
+```
+## with /tf
+ros2 launch stage_ros2 stage.launch.py world:=cave enforce_prefixes:=false one_tf_tree:=true
+## with /robot_0/tf
+ros2 launch stage_ros2 stage.launch.py world:=cave enforce_prefixes:=true one_tf_tree:=false
+```
+
+## Multi Robot Support
+This stage ROS bridge supports multiple robots with one or multiple tf-Trees.
+### multiple tf-trees
 <div align="center">
 <img src="res/cave_three_robots_multiple_tf_trees_depth_info.jpg" alt="stage two rviz widowns showing two robot views" width="800px" /><br>
 <table style="width:800px;"><td>
@@ -17,7 +28,7 @@ Multiple TF-trees after with two rviz nodes for robot_0 and robot_1: <br># <b>ro
 </td></table> 
 </div>
 
-### one tf-tree support
+### one tf-tree
 <div align="center">
 <img src="res/cave_three_robots_one_tf_tree.jpg" alt="stage and rviz with laser, tf, and cameras" width="800px" /><br>
 <table style="width:800px;"><td>
