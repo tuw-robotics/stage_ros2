@@ -3,7 +3,7 @@
 #set -g pane-border-status bottom
 
 
-name: pioneer3dx_stage
+name: cave_three_robots
 #root: /home/markus/projects/tuw-ros
 
 windows:

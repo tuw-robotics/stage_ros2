@@ -55,3 +55,11 @@ ros2 run stage_ros2 stage_ros2  --ros-args --ros-args \
 ```
 ros2 service call /reset_positions std_srvs/srv/Empty
 ```
+
+
+## tmuxinator
+you can use the tmuxinator configurations to start some demos like
+```
+tmuxinator start -p ./ws01/src/stage_ros2/tmuxinator/cave_three_robots.yml
+tmuxinator start -p ./ws01/src/stage_ros2/tmuxinator/cave_one_robot.yml
+```

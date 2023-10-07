@@ -1,0 +1,20 @@
+##enable named panes in tmux.conf with:
+#set -g pane-border-format "#{pane_index} #{pane_title}"
+#set -g pane-border-status bottom
+
+name: cave_one_robot
+#root: /home/markus/projects/tuw-ros
+
+windows:
+  - simulation:
+      layout: even-vertical
+      panes: 
+        - stage: 
+          - printf '\033]2;%s\033\\' 'stage'
+          - ros2 launch stage_ros2 stage.launch.py world:=cave enforce_prefixes:=true one_tf_tree:=false
+        - rviz robot_0: 
+          - printf '\033]2;%s\033\\' 'rviz robot_0'
+          - ros2 launch stage_ros2 rviz_ns.launch.py config:=robot_ns_depth namespace:=robot_0
+        - mouse_teleop robot_0: 
+          - printf '\033]2;%s\033\\' 'mouse_teleop robot_0'
+          - ros2 run mouse_teleop mouse_teleop -r __ns:=/robot_0 --ros-args --remap mouse_vel:=cmd_vel
