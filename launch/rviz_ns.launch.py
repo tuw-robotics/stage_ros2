@@ -80,7 +80,7 @@ def generate_launch_description():
         package='rviz2',
         executable='rviz2',
         namespace=namespace,
-        arguments=['-d', rviz_config, '-t', '{NAMESPACE} - {FILE} - RViz2'],
+        arguments=['-d', rviz_config, '-t', '{NAMESPACE} - {CONFIG_PATH}/{CONFIG_FILENAME} - RViz2'],
         output='screen',
         remappings=[('/tf', 'tf'),
                     ('/tf_static', 'tf_static'),
