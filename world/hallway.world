@@ -64,7 +64,7 @@ define mount model
 )
 
 # throw in a block
-my_block( pose [ 0 4 0 0.000 ] color "green")
+my_block( pose [ 0 -1.5 0 0.000 ] color "green")
 
 
 # throw in a robot
@@ -73,7 +73,7 @@ pioneer2dx_with_laser
   # can refer to the robot by this name
   name "robot_0"
   color "red" 
-  pose [ -3 -10 0 0 ] 
+  pose [ -3 0 0 0 ] 
 )
 
 
@@ -83,7 +83,7 @@ pioneer2dx_with_laser
   # can refer to the robot by this name
   name "robot_1"
   color "GreenYellow" 
-  pose [  3 -10 0 180 ] 
+  pose [  3 0 0 180 ] 
 )
 
 # throw in a robot
@@ -92,5 +92,5 @@ pioneer2dx_with_laser
   # can refer to the robot by this name
   name "robot_2"
   color "GreenBlue" 
-  pose [ -0 -6 0 270 ] 
+  pose [ -0 4 0 270 ] 
 )
