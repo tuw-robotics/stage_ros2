@@ -42,7 +42,7 @@ window
 floorplan
 ( 
   name "line"
-  size [190.000 70.000 0.800]
+  size [190.000 90.000 0.800]
   pose [0 0 0 0]
   bitmap "bitmaps/straden.png"
   gui_move 0
@@ -67,5 +67,5 @@ pioneer2dx_with_laser
   # can refer to the robot by this name
   name "robot_0"
   color "red" 
-  pose [ 0 0 0 45 ] 
+  pose [ 0 -32 0 180 ] 
 )
