@@ -53,8 +53,10 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
   {
     frame_name_space_ = name() + "/";
     topic_name_tf_ = std::string("/") + TOPIC_TF;
-    topic_name_tf_static_ =  std::string("/") + TOPIC_TF_STATIC;
-  } else {
+    topic_name_tf_static_ = std::string("/") + TOPIC_TF_STATIC;
+  }
+  else
+  {
     topic_name_tf_ = topic_name_space_ + TOPIC_TF;
     topic_name_tf_static_ = topic_name_space_ + TOPIC_TF_STATIC;
   }
@@ -74,7 +76,7 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
   pub_ground_truth_ =
       node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_ground_truth_, 10);
   sub_cmd_ =
-      node_->create_subscription<geometry_msgs::msg::Twist>(
+      node_->create_subscription<geometry_msgs::msg::TwistStamped>(
           topic_name_cmd_, 10,
           std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
 
@@ -190,13 +192,13 @@ void StageNode::Vehicle::check_watchdog_timeout()
     }
   }
 }
-void StageNode::Vehicle::callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg)
+void StageNode::Vehicle::callback_cmd(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
 {
   std::scoped_lock lock(node_->msg_lock);
   this->positionmodel->SetSpeed(
-      msg->linear.x,
-      msg->linear.y,
-      msg->angular.z);
+      msg->twist.linear.x,
+      msg->twist.linear.y,
+      msg->twist.angular.z);
   time_last_cmd_received_ = node_->sim_time_;
   timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
 }
