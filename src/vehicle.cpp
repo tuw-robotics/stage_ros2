@@ -45,18 +45,17 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
 
   topic_name_space_ = std::string();
   frame_name_space_ = std::string();
-  if (use_topic_prefixes == true)
-  {
-    topic_name_space_ = name() + "/";
-  }
+
   if (use_one_tf_tree)
   {
-    frame_name_space_ = name() + "/";
+    if (use_topic_prefixes)
+      frame_name_space_ = name() + "/";
     topic_name_tf_ = std::string("/") + TOPIC_TF;
     topic_name_tf_static_ = std::string("/") + TOPIC_TF_STATIC;
   }
   else
   {
+    frame_name_space_ = name() + "/";
     topic_name_tf_ = topic_name_space_ + TOPIC_TF;
     topic_name_tf_static_ = topic_name_space_ + TOPIC_TF_STATIC;
   }
@@ -68,6 +67,7 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
   topic_name_odom_ = topic_name_space_ + TOPIC_ODOM;
   topic_name_ground_truth_ = topic_name_space_ + TOPIC_GROUND_TRUTH;
   topic_name_cmd_ = topic_name_space_ + TOPIC_CMD_VEL;
+  topic_name_cmd_unstamped_ = topic_name_space_ + TOPIC_CMD_VEL + "_unstamped";
 
   tf_static_broadcaster_ = std::make_shared<stage_ros2::StaticTransformBroadcaster>(node_, topic_name_tf_static_.c_str());
   tf_broadcaster_ = std::make_shared<stage_ros2::TransformBroadcaster>(node_, topic_name_tf_.c_str());
@@ -79,6 +79,10 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
       node_->create_subscription<geometry_msgs::msg::TwistStamped>(
           topic_name_cmd_, 10,
           std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
+  sub_cmd_unstamped_ =
+      node_->create_subscription<geometry_msgs::msg::Twist>(
+          topic_name_cmd_unstamped_, 10,
+          std::bind(&StageNode::Vehicle::callback_cmd_unstamped, this, _1));
 
   positionmodel->Subscribe();
 
@@ -199,6 +203,16 @@ void StageNode::Vehicle::callback_cmd(const geometry_msgs::msg::TwistStamped::Sh
       msg->twist.linear.x,
       msg->twist.linear.y,
       msg->twist.angular.z);
+  time_last_cmd_received_ = node_->sim_time_;
+  timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
+}
+void StageNode::Vehicle::callback_cmd_unstamped(const geometry_msgs::msg::Twist::SharedPtr msg)
+{
+  std::scoped_lock lock(node_->msg_lock);
+  this->positionmodel->SetSpeed(
+      msg->linear.x,
+      msg->linear.y,
+      msg->angular.z);
   time_last_cmd_received_ = node_->sim_time_;
   timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
 }
