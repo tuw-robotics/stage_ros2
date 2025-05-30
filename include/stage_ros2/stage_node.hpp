@@ -13,7 +13,7 @@
 // roscpp
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/empty.hpp>
-#include <geometry_msgs/msg/twist.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/image_encodings.hpp>
@@ -30,8 +30,6 @@
 
 #include "stage_ros2/visibility.h"
 
-
-
 // Our node
 class StageNode : public rclcpp::Node
 {
@@ -45,12 +43,12 @@ private:
   // a structure representing a robot inthe simulator
   class Vehicle
   {
-public:
+  public:
     class Ranger
     {
       bool initialized_;
       size_t id_;
-      Stg::ModelRanger * model;
+      Stg::ModelRanger *model;
       std::shared_ptr<Vehicle> vehicle;
       std::string topic_name;
       std::string frame_base;
@@ -61,9 +59,9 @@ public:
       bool prepare_msg();
       bool prepare_tf();
 
-public:
+    public:
       Ranger(
-        unsigned int id, Stg::ModelRanger * m, std::shared_ptr<Vehicle> & vehicle);
+          unsigned int id, Stg::ModelRanger *m, std::shared_ptr<Vehicle> &vehicle);
       void init(bool add_id_to_topic);
       unsigned int id() const;
       void publish_msg();
@@ -73,14 +71,14 @@ public:
     {
       bool initialized_;
       size_t id_;
-      Stg::ModelCamera * model;
+      Stg::ModelCamera *model;
       std::shared_ptr<Vehicle> vehicle;
       geometry_msgs::msg::TransformStamped::SharedPtr transform;
-      rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image;             // multiple images
+      rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image; // multiple images
       sensor_msgs::msg::Image::SharedPtr msg_image;
-      rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_depth;             // multiple depths
+      rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_depth; // multiple depths
       sensor_msgs::msg::Image::SharedPtr msg_depth;
-      rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr pub_camera;       // multiple cameras
+      rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr pub_camera; // multiple cameras
       sensor_msgs::msg::CameraInfo::SharedPtr msg_camera;
       bool prepare_msg();
       bool prepare_msg_image();
@@ -88,9 +86,9 @@ public:
       bool prepare_msg_camera();
       bool prepare_tf();
 
-public:
+    public:
       Camera(
-        unsigned int id, Stg::ModelCamera * m, std::shared_ptr<Vehicle> & vehicle);
+          unsigned int id, Stg::ModelCamera *m, std::shared_ptr<Vehicle> &vehicle);
       void init(bool add_id_to_topic);
       unsigned int id() const;
       void publish_msg();
@@ -101,21 +99,22 @@ public:
       std::string frame_id;
     };
 
-private:
+  private:
     bool initialized_;
     size_t id_;
     Stg::Pose initial_pose_;
-    std::string name_;     /// used for the ros publisher
-    StageNode * node_;
-    Stg::World * world_;
+    std::string name_; /// used for the ros publisher
+    StageNode *node_;
+    Stg::World *world_;
     rclcpp::Time time_last_cmd_received_;
-    rclcpp::Time timeout_cmd_;        /// if no command is received befor the vehicle is stopped
+    rclcpp::Time timeout_cmd_; /// if no command is received befor the vehicle is stopped
     // Last time we saved global position (for velocity calculation).
     rclcpp::Time time_last_pose_update_;
 
     std::string topic_name_space_;
     std::string frame_name_space_;
     std::string topic_name_cmd_;
+    std::string topic_name_cmd_unstamped_;
 
     std::string topic_name_tf_;
     std::string topic_name_tf_static_;
@@ -127,31 +126,34 @@ private:
     nav_msgs::msg::Odometry msg_odom_;
     std::shared_ptr<Stg::Pose> global_pose_;
 
-public:
-    Vehicle(size_t id, const Stg::Pose & pose, const std::string & name, StageNode * node);
+  public:
+    Vehicle(size_t id, const Stg::Pose &pose, const std::string &name, StageNode *node);
 
     void soft_reset();
     size_t id() const;
-    const std::string & name() const;
-    const std::string & name_space() const;
+    const std::string &name() const;
+    const std::string &name_space() const;
     void init(bool use_topic_prefixes, bool use_one_tf_tree);
-    void callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg);
+    void callback_cmd(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
+    void callback_cmd_unstamped(const geometry_msgs::msg::Twist::SharedPtr msg);
     void publish_msg();
     void publish_tf();
     void check_watchdog_timeout();
-    StageNode *node(){
+    StageNode *node()
+    {
       return node_;
     }
 
     // stage related models
-    Stg::ModelPosition * positionmodel;               // one position
-    std::vector<std::shared_ptr<Ranger>> rangers_;     // multiple rangers per position
-    std::vector<std::shared_ptr<Camera>> cameras_;      // multiple cameras per position
+    Stg::ModelPosition *positionmodel;             // one position
+    std::vector<std::shared_ptr<Ranger>> rangers_; // multiple rangers per position
+    std::vector<std::shared_ptr<Camera>> cameras_; // multiple cameras per position
 
     // ros publishers
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_;             // one odom
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_ground_truth_;     // one ground truth
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_;     // one cmd_vel subscriber
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_;               // one odom
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_ground_truth_;       // one ground truth
+    rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr sub_cmd_;    // one cmd_vel subscriber
+    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_unstamped_; // one cmd_vel subscriber
 
     std::shared_ptr<stage_ros2::StaticTransformBroadcaster> tf_static_broadcaster_;
     std::shared_ptr<stage_ros2::TransformBroadcaster> tf_broadcaster_;
@@ -160,17 +162,16 @@ public:
   /// vector to hold the simulated vehicles with ros interfaces
   std::vector<std::shared_ptr<Vehicle>> vehicles_;
 
-
-  bool isDepthCanonical_;                  /// ROS parameter
-  bool enforce_prefixes_;                  /// ROS parameter
-  bool one_tf_tree_;                       /// ROS parameter
-  bool enable_gui_;                        /// ROS parameter
-  bool publish_ground_truth_;              /// ROS parameter
-  bool use_static_transformations_;        /// ROS parameter
-  std::string world_file_;                 /// ROS parameter
-  std::string frame_id_odom_name_;         /// ROS parameter
-  std::string frame_id_world_name_;        /// ROS parameter
-  std::string frame_id_base_link_name_;    /// ROS parameter
+  bool isDepthCanonical_;               /// ROS parameter
+  bool enforce_prefixes_;               /// ROS parameter
+  bool one_tf_tree_;                    /// ROS parameter
+  bool enable_gui_;                     /// ROS parameter
+  bool publish_ground_truth_;           /// ROS parameter
+  bool use_static_transformations_;     /// ROS parameter
+  std::string world_file_;              /// ROS parameter
+  std::string frame_id_odom_name_;      /// ROS parameter
+  std::string frame_id_world_name_;     /// ROS parameter
+  std::string frame_id_base_link_name_; /// ROS parameter
 
   // TF broadcaster to publish the robot odom
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_stage_;
@@ -182,15 +183,15 @@ public:
   rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_pub_;
 
   /// called only ones to init the models and to crate for each model a link to ROS
-  static int callback_init_stage_model(Stg::Model * mod, StageNode * node);
+  static int callback_init_stage_model(Stg::Model *mod, StageNode *node);
 
   /// called on every simulation interation
-  static int callback_update_stage_world(Stg::World * world, StageNode * node);
+  static int callback_update_stage_world(Stg::World *world, StageNode *node);
 
 public:
   ~StageNode();
   // Constructor
-  void init(int argc, char ** argv);
+  void init(int argc, char **argv);
 
   // declares ros parameters
   void declare_parameters();
@@ -215,10 +216,10 @@ public:
 
   // Service callback for soft reset
   bool cb_reset_srv(const std_srvs::srv::Empty::Request::SharedPtr,
-    std_srvs::srv::Empty::Response::SharedPtr);
+                    std_srvs::srv::Empty::Response::SharedPtr);
 
   // The main simulator object
-  Stg::World * world;
+  Stg::World *world;
 
   rclcpp::Duration base_watchdog_timeout_;
 
@@ -227,11 +228,10 @@ public:
 
 private:
   static geometry_msgs::msg::TransformStamped create_transform_stamped(
-    const tf2::Transform & in,
-    const rclcpp::Time & timestamp, const std::string & frame_id,
-    const std::string & child_frame_id);
+      const tf2::Transform &in,
+      const rclcpp::Time &timestamp, const std::string &frame_id,
+      const std::string &child_frame_id);
   static geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
-
 };
 
 #endif // STAGE_ROS2_PKG__STAGE_ROS_HPP_

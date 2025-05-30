@@ -68,4 +68,8 @@ pioneer2dx_with_laser
   name "robot_0"
   color "red" 
   pose [ 0 -32 0 180 ] 
+
+  localization "odom"           # Change to "gps" to have impossibly perfect, global odometry 
+  odom_error [ 0.0 0.0 0.0 0.0 ]  # Odometry error or slip in X, Y and Theta  (Uniform random distribution)   
+ 
 )
