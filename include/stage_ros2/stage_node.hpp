@@ -13,7 +13,7 @@
 // roscpp
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/empty.hpp>
-#include <geometry_msgs/msg/twist.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/image_encodings.hpp>
@@ -116,6 +116,7 @@ private:
     std::string topic_name_space_;
     std::string frame_name_space_;
     std::string topic_name_cmd_;
+    std::string topic_name_cmd_stamped_;
 
     std::string topic_name_tf_;
     std::string topic_name_tf_static_;
@@ -136,6 +137,7 @@ public:
     const std::string & name_space() const;
     void init(bool use_topic_prefixes, bool use_one_tf_tree);
     void callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg);
+    void callback_cmd_stamped(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
     void publish_msg();
     void publish_tf();
     void check_watchdog_timeout();
@@ -149,9 +151,10 @@ public:
     std::vector<std::shared_ptr<Camera>> cameras_;      // multiple cameras per position
 
     // ros publishers
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_;             // one odom
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_ground_truth_;     // one ground truth
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_;     // one cmd_vel subscriber
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_;                     // one odom
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_ground_truth_;             // one ground truth
+    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_;                 // one cmd_vel subscriber
+    rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr sub_cmd_stamped_;  // one sub_cmd_stamped_ subscriber
 
     std::shared_ptr<stage_ros2::StaticTransformBroadcaster> tf_static_broadcaster_;
     std::shared_ptr<stage_ros2::TransformBroadcaster> tf_broadcaster_;

@@ -29,6 +29,7 @@ ros2 launch stage_ros2 demo.launch.py world:=cave_seven_robots
 ### teleop joy
 
 ```
+sudo apt install ros-jazzy-teleop-twist-joy                # install dependencies
 ros2 launch stage_ros2 f710.launch.py namespace:='/'       # for a single vehicle world like cave.world
 ros2 launch stage_ros2 f710.launch.py namespace:='robot_0' # for a world like cave_multi.world or cave_three_robots.world
 ```
