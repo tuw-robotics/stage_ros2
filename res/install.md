@@ -10,6 +10,5 @@ rosdep update
 rosdep install --from-paths ./Stage --ignore-src -r -y  # install dependencies for Stage
 rosdep install --from-paths ./stage_ros2 --ignore-src -r -y  # install dependencies for stage_ros2
 cd YOUR_ROS2_WORKSPACE
-colcon build --symlink-install --packages-select stage --cmake-args -DOpenGL_GL_PREFERENCE=LEGACY
-colcon build --symlink-install --packages-select stage_ros2        
+colcon build --symlink-install 
 ```
