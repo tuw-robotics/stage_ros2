@@ -13,6 +13,12 @@ def generate_launch_description():
 
     this_directory = get_package_share_directory('stage_ros2')
 
+    use_stamped_velocity = LaunchConfiguration('use_stamped_velocity')
+    use_stamped_velocity_arg = DeclareLaunchArgument(
+        'use_stamped_velocity',
+        default_value='false',
+        description='on true stage will accept TwistStamped command messages')
+    
     stage_world_arg = DeclareLaunchArgument(
         'world',
         default_value=TextSubstitution(text='cave'),
@@ -47,6 +53,7 @@ def generate_launch_description():
     stage_world_configuration_arg = OpaqueFunction(function=stage_world_configuration)
 
     return LaunchDescription([
+        use_stamped_velocity_arg,
         stage_world_arg,
         one_tf_tree_arg, 
         enforce_prefixes_arg, 
@@ -58,6 +65,7 @@ def generate_launch_description():
             name='stage',
             parameters=[{'one_tf_tree': one_tf_tree,
                         'enforce_prefixes': enforce_prefixes,
+                        'use_stamped_velocity': use_stamped_velocity,
                         'use_static_transformations': use_static_transformations,
                 "world_file": [LaunchConfiguration('world_file')]}],
         )

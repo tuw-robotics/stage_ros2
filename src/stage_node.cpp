@@ -18,6 +18,11 @@ StageNode::~StageNode()
 void StageNode::declare_parameters()
 {
   this->set_parameter(rclcpp::Parameter("use_sim_time", true));
+
+  auto param_desc_use_stamped_velocity = rcl_interfaces::msg::ParameterDescriptor{};
+  param_desc_use_stamped_velocity.description = "on true it uses stamped command velocities, TwistStamped on false Twist msgs!";
+  this->declare_parameter<bool>("use_stamped_velocity", false, param_desc_use_stamped_velocity);
+
   auto param_desc_enable_gui = rcl_interfaces::msg::ParameterDescriptor{};
   param_desc_enable_gui.description = "Enable GUI!";
   this->declare_parameter<bool>("enable_gui", true, param_desc_enable_gui);
@@ -77,6 +82,7 @@ void StageNode::declare_parameters()
 void StageNode::update_parameters()
 {
   double base_watchdog_timeout_sec{5.0};
+  this->get_parameter("use_stamped_velocity", this->use_stamped_velocity_);
   this->get_parameter("enable_gui", this->enable_gui_);
   this->get_parameter("enforce_prefixes", this->enforce_prefixes_);
   this->get_parameter("one_tf_tree", this->one_tf_tree_);

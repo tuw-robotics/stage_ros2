@@ -22,6 +22,11 @@ def generate_launch_description():
         default_value='false',
         description='on true a prefixes are used for a single robot environment')
     
+    use_stamped_velocity = LaunchConfiguration('use_stamped_velocity')
+    use_stamped_velocity_cmd = DeclareLaunchArgument(
+        'use_stamped_velocity',
+        default_value='false',
+        description='on true stage will accept TwistStamped command messages')
 
     one_tf_tree = LaunchConfiguration('one_tf_tree')
     one_tf_tree_cmd = DeclareLaunchArgument(
@@ -54,6 +59,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         declare_namespace_cmd,
+        use_stamped_velocity_cmd,
         declare_rviz_cmd,
         declare_stage_cmd,
         enforce_prefixes_cmd,
@@ -70,5 +76,6 @@ def generate_launch_description():
             condition=IfCondition(stage),
             launch_arguments={'one_tf_tree':one_tf_tree,
                               'enforce_prefixes':enforce_prefixes,
+                              'use_stamped_velocity': use_stamped_velocity,
                               'world': world}.items()),
     ])

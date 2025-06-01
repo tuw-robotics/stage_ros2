@@ -9,7 +9,6 @@
 #define TOPIC_ODOM "odom"
 #define TOPIC_GROUND_TRUTH "ground_truth"
 #define TOPIC_CMD_VEL "cmd_vel"
-#define TOPIC_CMD_VEL_STAMPED "cmd_vel_stamped"
 
 using std::placeholders::_1;
 
@@ -67,7 +66,6 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
   topic_name_odom_ = topic_name_space_ + TOPIC_ODOM;
   topic_name_ground_truth_ = topic_name_space_ + TOPIC_GROUND_TRUTH;
   topic_name_cmd_ = topic_name_space_ + TOPIC_CMD_VEL;
-  topic_name_cmd_stamped_ = topic_name_space_ + TOPIC_CMD_VEL_STAMPED;
 
   tf_static_broadcaster_ = std::make_shared<stage_ros2::StaticTransformBroadcaster>(node_, topic_name_tf_static_.c_str());
   tf_broadcaster_ = std::make_shared<stage_ros2::TransformBroadcaster>(node_, topic_name_tf_.c_str());
@@ -75,15 +73,20 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
   pub_odom_ = node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_odom_, 10);
   pub_ground_truth_ =
       node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_ground_truth_, 10);
-  sub_cmd_ =
-      node_->create_subscription<geometry_msgs::msg::Twist>(
-          topic_name_cmd_, 10,
-          std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
-  sub_cmd_stamped_ =
+  
+  if(node_->use_stamped_velocity_){    
+    sub_cmd_stamped_ =
       node_->create_subscription<geometry_msgs::msg::TwistStamped>(
-          topic_name_cmd_stamped_, 10,
+          topic_name_cmd_, 10,
           std::bind(&StageNode::Vehicle::callback_cmd_stamped, this, _1));
-
+    RCLCPP_INFO(node_->get_logger(), "%s is using stamped velocity commands.", name().c_str());
+  } else {
+    sub_cmd_ =
+        node_->create_subscription<geometry_msgs::msg::Twist>(
+            topic_name_cmd_, 10,
+            std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
+    RCLCPP_INFO(node_->get_logger(), "%s is useing unstamped velocity commands.", name().c_str());    
+  }
   positionmodel->Subscribe();
 
   for (std::shared_ptr<Ranger> ranger : rangers_)

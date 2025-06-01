@@ -116,7 +116,6 @@ private:
     std::string topic_name_space_;
     std::string frame_name_space_;
     std::string topic_name_cmd_;
-    std::string topic_name_cmd_stamped_;
 
     std::string topic_name_tf_;
     std::string topic_name_tf_static_;
@@ -168,6 +167,7 @@ public:
   bool enforce_prefixes_;                  /// ROS parameter
   bool one_tf_tree_;                       /// ROS parameter
   bool enable_gui_;                        /// ROS parameter
+  bool use_stamped_velocity_;              /// ROS parameter
   bool publish_ground_truth_;              /// ROS parameter
   bool use_static_transformations_;        /// ROS parameter
   std::string world_file_;                 /// ROS parameter
