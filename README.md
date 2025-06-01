@@ -6,6 +6,12 @@ It supports multiple robots with one or multiple tf-trees.
 * [run demos](res/demos.md)
 * [handling multiple vehickes](res/multi_robot_setup.md)
 
+## Stamped velocity Support (TwistStamped)
+This stage ROS bridge can be configured to use stamped velocities on the topic __cmd_vel__.
+```
+ros2 launch stage_ros2 demo.launch.py world:=cave  use_stamped_velocity:=false
+```
+
 ## Single Robot Support
 This stage ROS bridge can be configured to use a namespace even for one robot.
 ```
