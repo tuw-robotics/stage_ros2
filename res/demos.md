@@ -7,7 +7,7 @@
 ## with /tf
 ros2 launch stage_ros2 stage.launch.py world:=cave enforce_prefixes:=false one_tf_tree:=true
 ## with /robot_0/tf
-ros2 launch stage_ros2 stage.launch.py world:=cave enforce_prefixes:=true one_tf_tree:=false
+ros2 launch stage_ros2 stage.launch.py world:=cave enforce_prefixes:=true one_tf_tree:=false 
 ```
 ### stage and rviz
 demo worlds with different robot configurations and rviz configs with __one tf tree__
@@ -48,7 +48,8 @@ ros2 run stage_ros2 stage_ros2  --ros-args --ros-args \
     -p world_file:=lines.world \
     -p use_static_transformations:=true \
     -p enforce_prefixes:=true \
-    -p one_tf_tree:=false
+    -p one_tf_tree:=false \
+    -p use_stamped_velocity:=false
 ```
 
 ## SoftReset
