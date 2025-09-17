@@ -1,5 +1,5 @@
 # stage_ros2
-This is a  ROS bridge for the robot simulator [Stage](https://github.com/rtv/Stage).
+This is a ROS2 bridge for the robot simulator [Stage](https://github.com/rtv/Stage).
 It supports multiple robots with one or multiple tf-trees.
 
 * [install](res/install.md)
@@ -7,9 +7,9 @@ It supports multiple robots with one or multiple tf-trees.
 * [handling multiple vehickes](res/multi_robot_setup.md)
 
 ## Stamped velocity Support (TwistStamped)
-This stage ROS bridge can be configured to use stamped velocities on the topic __cmd_vel__.
+This stage ROS2 bridge can be configured to use stamped velocities on the topic __cmd_vel__.
 ```
-ros2 launch stage_ros2 demo.launch.py world:=cave  use_stamped_velocity:=false
+ros2 launch stage_ros2 demo.launch.py world:=cave use_stamped_velocity:=true
 ```
 
 ## Single Robot Support
