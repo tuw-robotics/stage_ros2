@@ -14,6 +14,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/empty.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/image_encodings.hpp>
@@ -116,6 +117,7 @@ private:
     std::string topic_name_space_;
     std::string frame_name_space_;
     std::string topic_name_cmd_;
+    std::string topic_name_drive_;
 
     std::string topic_name_tf_;
     std::string topic_name_tf_static_;
@@ -137,6 +139,8 @@ public:
     void init(bool use_topic_prefixes, bool use_one_tf_tree);
     void callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg);
     void callback_cmd_stamped(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
+    void callback_drive(const ackermann_msgs::msg::AckermannDrive::SharedPtr msg);
+    void callback_drive_stamped(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg);
     void publish_msg();
     void publish_tf();
     void check_watchdog_timeout();
@@ -168,6 +172,7 @@ public:
   bool one_tf_tree_;                       /// ROS parameter
   bool enable_gui_;                        /// ROS parameter
   bool use_stamped_velocity_;              /// ROS parameter
+  bool use_ackermann_;                     /// ROS parameter
   bool publish_ground_truth_;              /// ROS parameter
   bool use_static_transformations_;        /// ROS parameter
   std::string world_file_;                 /// ROS parameter

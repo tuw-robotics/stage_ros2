@@ -9,6 +9,7 @@
 #define TOPIC_ODOM "odom"
 #define TOPIC_GROUND_TRUTH "ground_truth"
 #define TOPIC_CMD_VEL "cmd_vel"
+#define TOPIC_DRIVE "drive"
 
 using std::placeholders::_1;
 
@@ -66,6 +67,7 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
   topic_name_odom_ = topic_name_space_ + TOPIC_ODOM;
   topic_name_ground_truth_ = topic_name_space_ + TOPIC_GROUND_TRUTH;
   topic_name_cmd_ = topic_name_space_ + TOPIC_CMD_VEL;
+  topic_name_drive_ = topic_name_space_ + TOPIC_DRIVE;
 
   tf_static_broadcaster_ = std::make_shared<stage_ros2::StaticTransformBroadcaster>(node_, topic_name_tf_static_.c_str());
   tf_broadcaster_ = std::make_shared<stage_ros2::TransformBroadcaster>(node_, topic_name_tf_.c_str());
@@ -73,19 +75,35 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
   pub_odom_ = node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_odom_, 10);
   pub_ground_truth_ =
       node_->create_publisher<nav_msgs::msg::Odometry>(topic_name_ground_truth_, 10);
-  
-  if(node_->use_stamped_velocity_){    
-    sub_cmd_stamped_ =
-      node_->create_subscription<geometry_msgs::msg::TwistStamped>(
-          topic_name_cmd_, 10,
-          std::bind(&StageNode::Vehicle::callback_cmd_stamped, this, _1));
-    RCLCPP_INFO(node_->get_logger(), "%s is using stamped velocity commands.", name().c_str());
+
+  if(node_->use_ackermann_){
+      if(node_->use_stamped_velocity_){
+        sub_cmd_stamped_ =
+          node_->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
+              topic_name_drive_, 10,
+              std::bind(&StageNode::Vehicle::callback_drive_stamped, this, std::placeholders::_1));
+        RCLCPP_INFO(node_->get_logger(), "%s is using stamped Ackermann velocity commands.", name().c_str());
+      } else {
+        sub_cmd_ =
+            node_->create_subscription<ackermann_msgs::msg::AckermannDrive>(
+                topic_name_drive_, 10,
+                std::bind(&StageNode::Vehicle::callback_drive, this, std::placeholders::_1));
+        RCLCPP_INFO(node_->get_logger(), "%s is using unstamped Ackermann velocity commands.", name().c_str());
+      }
   } else {
-    sub_cmd_ =
-        node_->create_subscription<geometry_msgs::msg::Twist>(
-            topic_name_cmd_, 10,
-            std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
-    RCLCPP_INFO(node_->get_logger(), "%s is useing unstamped velocity commands.", name().c_str());    
+      if(node_->use_stamped_velocity_){
+        sub_cmd_stamped_ =
+          node_->create_subscription<geometry_msgs::msg::TwistStamped>(
+              topic_name_cmd_, 10,
+              std::bind(&StageNode::Vehicle::callback_cmd_stamped, this, _1));
+        RCLCPP_INFO(node_->get_logger(), "%s is using stamped velocity commands.", name().c_str());
+      } else {
+        sub_cmd_ =
+            node_->create_subscription<geometry_msgs::msg::Twist>(
+                topic_name_cmd_, 10,
+                std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
+        RCLCPP_INFO(node_->get_logger(), "%s is using unstamped velocity commands.", name().c_str());
+      }
   }
   positionmodel->Subscribe();
 
@@ -217,6 +235,28 @@ void StageNode::Vehicle::callback_cmd_stamped(const geometry_msgs::msg::TwistSta
       msg->twist.linear.x,
       msg->twist.linear.y,
       msg->twist.angular.z);
+  time_last_cmd_received_ = node_->sim_time_;
+  timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
+}
+
+void StageNode::Vehicle::callback_drive(const ackermann_msgs::msg::AckermannDrive::SharedPtr msg)
+{
+  std::scoped_lock lock(node_->msg_lock);
+  this->positionmodel->SetSpeed(
+      msg->speed,
+      0.0,
+      msg->steering_angle);
+  time_last_cmd_received_ = node_->sim_time_;
+  timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
+}
+
+void StageNode::Vehicle::callback_drive_stamped(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg)
+{
+  std::scoped_lock lock(node_->msg_lock);
+  this->positionmodel->SetSpeed(
+      msg->drive.speed,
+      0.0,
+      msg->drive.steering_angle);
   time_last_cmd_received_ = node_->sim_time_;
   timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
 }
