@@ -78,16 +78,16 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
 
   if(node_->use_ackermann_){
       if(node_->use_stamped_velocity_){
-        sub_cmd_stamped_ =
+        sub_drive_stamped_ =
           node_->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
               topic_name_drive_, 10,
-              std::bind(&StageNode::Vehicle::callback_drive_stamped, this, std::placeholders::_1));
+              std::bind(&StageNode::Vehicle::callback_drive_stamped, this, _1));
         RCLCPP_INFO(node_->get_logger(), "%s is using stamped Ackermann velocity commands.", name().c_str());
       } else {
-        sub_cmd_ =
+        sub_drive_ =
             node_->create_subscription<ackermann_msgs::msg::AckermannDrive>(
                 topic_name_drive_, 10,
-                std::bind(&StageNode::Vehicle::callback_drive, this, std::placeholders::_1));
+                std::bind(&StageNode::Vehicle::callback_drive, this, _1));
         RCLCPP_INFO(node_->get_logger(), "%s is using unstamped Ackermann velocity commands.", name().c_str());
       }
   } else {

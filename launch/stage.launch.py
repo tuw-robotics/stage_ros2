@@ -18,12 +18,17 @@ def generate_launch_description():
         'use_stamped_velocity',
         default_value='false',
         description='on true stage will accept TwistStamped command messages')
+
+    use_ackermann = LaunchConfiguration('use_ackermann')
+    use_ackermann_arg = DeclareLaunchArgument(
+        'use_ackermann',
+        default_value='false',
+        description='on true stage will accept AckermannDrive or AckermannDriveStamped command messages')
     
     stage_world_arg = DeclareLaunchArgument(
         'world',
         default_value=TextSubstitution(text='cave'),
         description='World file relative to the project world file, without .world')
-
 
     enforce_prefixes = LaunchConfiguration('enforce_prefixes')
     enforce_prefixes_arg = DeclareLaunchArgument(
@@ -54,6 +59,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         use_stamped_velocity_arg,
+        use_ackermann_arg,
         stage_world_arg,
         one_tf_tree_arg, 
         enforce_prefixes_arg, 
@@ -63,10 +69,11 @@ def generate_launch_description():
             package='stage_ros2',
             executable='stage_ros2',
             name='stage',
-            parameters=[{'one_tf_tree': one_tf_tree,
-                        'enforce_prefixes': enforce_prefixes,
-                        'use_stamped_velocity': use_stamped_velocity,
-                        'use_static_transformations': use_static_transformations,
-                "world_file": [LaunchConfiguration('world_file')]}],
+            parameters=[{'use_stamped_velocity': use_stamped_velocity,
+                         'use_ackermann': use_ackermann,
+                         'enforce_prefixes': enforce_prefixes,
+                         'use_static_transformations': use_static_transformations,
+                         'one_tf_tree': one_tf_tree,
+                         'world_file': [LaunchConfiguration('world_file')]}]
         )
     ])
