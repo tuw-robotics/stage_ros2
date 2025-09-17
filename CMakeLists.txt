@@ -16,6 +16,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(ackermann_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(stage REQUIRED)
@@ -32,7 +33,7 @@ add_library(stage_node SHARED
             src/stage_node.cpp src/vehicle.cpp src/ranger.cpp src/camera.cpp)
 target_compile_definitions(stage_node PRIVATE "STAGE_ROS2_PACKAGE_DLL")
 ament_target_dependencies(stage_node rclcpp rclcpp_components
-sensor_msgs geometry_msgs nav_msgs std_msgs tf2_ros std_srvs tf2_geometry_msgs)
+sensor_msgs geometry_msgs nav_msgs std_msgs tf2_ros std_srvs tf2_geometry_msgs ackermann_msgs)
 
 
 # This package installs libraries without exporting them.
