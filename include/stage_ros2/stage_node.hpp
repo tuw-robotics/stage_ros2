@@ -158,6 +158,8 @@ public:
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_ground_truth_;             // one ground truth
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_cmd_;                 // one cmd_vel subscriber
     rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr sub_cmd_stamped_;  // one sub_cmd_stamped_ subscriber
+    rclcpp::Subscription<ackermann_msgs::msg::AckermannDrive>::SharedPtr sub_drive_;     // one drive subscriber
+    rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr sub_drive_stamped_;  // one drive_stamped_ subscriber
 
     std::shared_ptr<stage_ros2::StaticTransformBroadcaster> tf_static_broadcaster_;
     std::shared_ptr<stage_ros2::TransformBroadcaster> tf_broadcaster_;

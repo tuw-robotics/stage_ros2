@@ -28,6 +28,12 @@ def generate_launch_description():
         default_value='false',
         description='on true stage will accept TwistStamped command messages')
 
+    use_ackermann = LaunchConfiguration('use_ackermann')
+    use_ackermann_arg = DeclareLaunchArgument(
+        'use_ackermann',
+        default_value='false',
+        description='on true stage will accept AckermannDrive or AckermannDriveStamped command messages')
+
     one_tf_tree = LaunchConfiguration('one_tf_tree')
     one_tf_tree_cmd = DeclareLaunchArgument(
         'one_tf_tree',
@@ -60,6 +66,7 @@ def generate_launch_description():
     return LaunchDescription([
         declare_namespace_cmd,
         use_stamped_velocity_cmd,
+        use_ackermann_arg,
         declare_rviz_cmd,
         declare_stage_cmd,
         enforce_prefixes_cmd,
@@ -77,5 +84,6 @@ def generate_launch_description():
             launch_arguments={'one_tf_tree':one_tf_tree,
                               'enforce_prefixes':enforce_prefixes,
                               'use_stamped_velocity': use_stamped_velocity,
+                              'use_ackermann': use_ackermann,
                               'world': world}.items()),
     ])
