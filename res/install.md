@@ -6,6 +6,7 @@ mkdir src
 cd src
 git clone git@github.com:tuw-robotics/Stage.git
 git clone git@github.com:tuw-robotics/stage_ros2.git
+sudo apt install ros-jazzy-ackermann-msgs
 rosdep update
 rosdep install --from-paths ./Stage --ignore-src -r -y  # install dependencies for Stage
 rosdep install --from-paths ./stage_ros2 --ignore-src -r -y  # install dependencies for stage_ros2
