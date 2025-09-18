@@ -85,7 +85,7 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
         node_->create_subscription<geometry_msgs::msg::Twist>(
             topic_name_cmd_, 10,
             std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
-    RCLCPP_INFO(node_->get_logger(), "%s is useing unstamped velocity commands.", name().c_str());    
+    RCLCPP_INFO(node_->get_logger(), "%s is using unstamped velocity commands.", name().c_str());
   }
   positionmodel->Subscribe();
 
@@ -96,7 +96,7 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
 
   for (std::shared_ptr<Camera> camera : cameras_)
   {
-    camera->init(rangers_.size() > 1);
+    camera->init(cameras_.size() > 1);
   }
   initialized_ = true;
 }
@@ -128,7 +128,7 @@ void StageNode::Vehicle::publish_msg()
   q_gpose.setRPY(0.0, 0.0, gpose.a);
   tf2::Transform gt(q_gpose, tf2::Vector3(gpose.x, gpose.y, 0.0));
   // Velocity is 0 by default and will be set only if there is previous pose and time delta>0
-  // @ToDo uising the positionmodel->GetVelocity() a self computed delta
+  // @ToDo using the positionmodel->GetVelocity() a self computed delta
   Stg::Velocity gvel(0, 0, 0, 0);
   if (global_pose_)
   {
