@@ -1,4 +1,5 @@
-# Straight street for camera calibration
+# Straight street for camera calibration.
+# Copyright 2025 ARRK Engineering GmbH
 include "include/chimera.inc"
 
 resolution 0.05

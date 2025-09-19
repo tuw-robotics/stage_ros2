@@ -1,4 +1,4 @@
-"""Demo for a street and a vehicle with AckermannStamped control and Remapping"""
+"""Demo for a street and a vehicle with AckermannStamped control and Remapping for ARRK Chimera project"""
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import os
