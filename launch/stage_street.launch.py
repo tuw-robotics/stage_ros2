@@ -75,8 +75,12 @@ def generate_launch_description():
                          'use_static_transformations': use_static_transformations,
                          'one_tf_tree': one_tf_tree,
                          'world_file': [LaunchConfiguration('world_file')]}],
-            remappings=[('/image1', '/zed/image'),
+            remappings=[('/base_scan', '/scan'),
+                ('/image1', '/zed/left/image'),
+                ('/depth1', '/zed/left/depth'),
+                ('/camera_info1', '/zed/left/info'),
                 ('/image2', '/webcam/image'),
-                ('/depth1', '/zed/depth')]
+                ('/depth2', '/webcam/depth'),
+                ('/camera_info2', '/webcam/info')]
         )
     ])
