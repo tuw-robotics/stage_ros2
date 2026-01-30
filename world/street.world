@@ -1,0 +1,50 @@
+# Straight street for camera calibration.
+# Copyright 2025 ARRK Engineering GmbH
+include "include/chimera.inc"
+
+resolution 0.05
+interval_sim 50
+
+define floorplan model
+(
+    color "gray30"
+
+    boundary 0
+    gui_move 0
+
+    gui_nose 1
+    gui_grid 1
+    gui_outline 0
+    gripper_return 1
+    fiducial_return 0
+    laser_return 1
+)
+
+window
+(
+  size [ 940 969 ] # in pixels
+  scale 156.247   # pixels per meter
+  center [ -0.207 -0.418]
+  rotate [ 0.000  -90.000 ]
+
+  show_data 0
+)
+
+floorplan
+(
+    name "Street"
+    bitmap "bitmaps/street.png"
+    size [9.000 2.700 0.000] # Map size in meters 
+    pose [0.000 0.000 0.000 0.000] # Orientation of the map
+    obstacle_return 0 # Whether robots can hit obstacles
+    
+)
+
+Chimera
+(
+    pose [-4.703 -0.161 0.000 0.000]
+    size [ 0.420 0.300 0.100 ]
+    name "Chimera"
+)
+obstacle( pose [ 5 4 0 180.000 ] color "green")
+obstacle( pose [ 5 4 0 180.000 ] color "red")
