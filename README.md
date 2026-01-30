@@ -12,6 +12,13 @@ This stage ROS2 bridge can be configured to use stamped velocities on the topic 
 ros2 launch stage_ros2 demo.launch.py world:=cave use_stamped_velocity:=false
 ```
 
+## Ackermann Support (AckermannDrive or AckermannDriveStamped)
+For using AckermannDrive /drive Messages instead of Twist /cmd_vel messages, use the following parameter:
+```
+ros2 launch stage_ros2 demo.launch.py world:=cave use_ackermann:=true
+```
+
+
 ## Single Robot Support
 This stage ROS bridge can be configured to use a namespace even for one robot.
 ```
