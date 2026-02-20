@@ -11,17 +11,17 @@
 
 using std::placeholders::_1;
 
-StageNode::Vehicle::Camera::Camera(
+Vehicle::Camera::Camera(
   unsigned int id, Stg::ModelCamera * m,
   std::shared_ptr<Vehicle> & v)
 : initialized_(false), id_(id), model(m), vehicle(v) {}
 
-unsigned int StageNode::Vehicle::Camera::id() const
+unsigned int Vehicle::Camera::id() const
 {
   return id_;
 }
 
-void StageNode::Vehicle::Camera::init(bool add_id_to_topic)
+void Vehicle::Camera::init(bool add_id_to_topic)
 {
   if(initialized_) return;
   model->Subscribe();
@@ -42,7 +42,7 @@ void StageNode::Vehicle::Camera::init(bool add_id_to_topic)
   pub_depth = vehicle->node()->create_publisher<sensor_msgs::msg::Image>(topic_name_depth, 10);
   initialized_ = true;
 }
-bool StageNode::Vehicle::Camera::prepare_msg_image()
+bool Vehicle::Camera::prepare_msg_image()
 {
   if (msg_image) {
     return true;
@@ -62,7 +62,7 @@ bool StageNode::Vehicle::Camera::prepare_msg_image()
 
   return true;
 }
-bool StageNode::Vehicle::Camera::prepare_msg_depth()
+bool Vehicle::Camera::prepare_msg_depth()
 {
   if (msg_depth) {
     return true;
@@ -83,7 +83,7 @@ bool StageNode::Vehicle::Camera::prepare_msg_depth()
   msg_depth->data.resize(len * sz);
   return true;
 }
-bool StageNode::Vehicle::Camera::prepare_msg_camera()
+bool Vehicle::Camera::prepare_msg_camera()
 {
 
   if (msg_camera) {
@@ -130,14 +130,14 @@ bool StageNode::Vehicle::Camera::prepare_msg_camera()
   return true;
 }
 
-bool StageNode::Vehicle::Camera::prepare_msg()
+bool Vehicle::Camera::prepare_msg()
 {
   if (!prepare_msg_image()) {return false;}
   if (!prepare_msg_depth()) {return false;}
   return true;
 }
 
-void StageNode::Vehicle::Camera::publish_msg()
+void Vehicle::Camera::publish_msg()
 {
   // Guard 
   if(!initialized_) return; 
@@ -215,7 +215,7 @@ void StageNode::Vehicle::Camera::publish_msg()
     pub_camera->publish(*msg_camera);
   }
 }
-bool StageNode::Vehicle::Camera::prepare_tf()
+bool Vehicle::Camera::prepare_tf()
 {
   if (transform) {return true;}
 
@@ -233,13 +233,13 @@ bool StageNode::Vehicle::Camera::prepare_tf()
     quternion,
     tf2::Vector3(pose.x, pose.y, vehicle->positionmodel->GetGeom().size.z + pose.z));
   *transform =
-    create_transform_stamped(tr, vehicle->node()->sim_time_, vehicle->frame_id_base_link_, frame_id);
+    StageNode::create_transform_stamped(tr, vehicle->node()->sim_time_, vehicle->frame_id_base_link_, frame_id);
   if (vehicle->node()->use_static_transformations_) {
     vehicle->tf_static_broadcaster_->sendTransform(*transform);
   }
   return true;
 }
-void StageNode::Vehicle::Camera::publish_tf()
+void Vehicle::Camera::publish_tf()
 {
   if (prepare_tf()) {
 

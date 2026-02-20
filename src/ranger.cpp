@@ -9,16 +9,16 @@
 
 using std::placeholders::_1;
 
-StageNode::Vehicle::Ranger::Ranger(
+Vehicle::Ranger::Ranger(
   unsigned int id, Stg::ModelRanger * m,
   std::shared_ptr<Vehicle> & v)
 : initialized_(false), id_(id), model(m), vehicle(v) {}
 
-unsigned int StageNode::Vehicle::Ranger::id() const
+unsigned int Vehicle::Ranger::id() const
 {
   return id_;
 }
-void StageNode::Vehicle::Ranger::init(bool add_id_to_topic)
+void Vehicle::Ranger::init(bool add_id_to_topic)
 {
   if(initialized_) return; 
   model->Subscribe();
@@ -33,7 +33,7 @@ void StageNode::Vehicle::Ranger::init(bool add_id_to_topic)
   initialized_ = true;
 }
 
-bool StageNode::Vehicle::Ranger::prepare_msg()
+bool Vehicle::Ranger::prepare_msg()
 {
   if (msg) {return true;}
   if (model->GetSensors().size() > 1) {
@@ -55,7 +55,7 @@ bool StageNode::Vehicle::Ranger::prepare_msg()
   return true;
 }
 
-bool StageNode::Vehicle::Ranger::prepare_tf()
+bool Vehicle::Ranger::prepare_tf()
 {
 
   transform = std::make_shared<geometry_msgs::msg::TransformStamped>();
@@ -67,7 +67,7 @@ bool StageNode::Vehicle::Ranger::prepare_tf()
     tf2::Transform(
     quternion,
     tf2::Vector3(pose.x, pose.y, vehicle->positionmodel->GetGeom().size.z + pose.z));
-  *transform = create_transform_stamped(
+  *transform = StageNode::create_transform_stamped(
     txLaser, vehicle->node()->sim_time_, vehicle->frame_id_base_link_,
     frame_id);
   if (vehicle->node()->use_static_transformations_) {
@@ -76,7 +76,7 @@ bool StageNode::Vehicle::Ranger::prepare_tf()
   return true;
 }
 
-void StageNode::Vehicle::Ranger::publish_msg()
+void Vehicle::Ranger::publish_msg()
 {
   // Guard 
   if(!initialized_) return; 
@@ -99,7 +99,7 @@ void StageNode::Vehicle::Ranger::publish_msg()
   }
 }
 
-void StageNode::Vehicle::Ranger::publish_tf()
+void Vehicle::Ranger::publish_tf()
 {
   if (prepare_tf()) {
 

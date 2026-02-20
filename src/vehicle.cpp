@@ -13,29 +13,29 @@
 
 using std::placeholders::_1;
 
-StageNode::Vehicle::Vehicle(
+Vehicle::Vehicle(
     size_t id, const Stg::Pose &pose, const std::string &name,
     StageNode *node)
     : initialized_(false), id_(id), initial_pose_(pose), name_(name), node_(node)
 {
 }
 
-size_t StageNode::Vehicle::id() const
+size_t Vehicle::id() const
 {
   return id_;
 }
-void StageNode::Vehicle::soft_reset()
+void Vehicle::soft_reset()
 {
   positionmodel->SetPose(this->initial_pose_);
   positionmodel->SetStall(false);
 }
 
-const std::string &StageNode::Vehicle::name() const
+const std::string &Vehicle::name() const
 {
   return name_;
 }
 
-void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
+void Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
 {
   if (initialized_)
     return;
@@ -81,13 +81,13 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
         sub_drive_stamped_ =
           node_->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
               topic_name_drive_, 10,
-              std::bind(&StageNode::Vehicle::callback_drive_stamped, this, _1));
+              std::bind(&Vehicle::callback_drive_stamped, this, _1));
         RCLCPP_INFO(node_->get_logger(), "%s is using stamped Ackermann velocity commands.", name().c_str());
       } else {
         sub_drive_ =
             node_->create_subscription<ackermann_msgs::msg::AckermannDrive>(
                 topic_name_drive_, 10,
-                std::bind(&StageNode::Vehicle::callback_drive, this, _1));
+                std::bind(&Vehicle::callback_drive, this, _1));
         RCLCPP_INFO(node_->get_logger(), "%s is using unstamped Ackermann velocity commands.", name().c_str());
       }
   } else {
@@ -95,13 +95,13 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
         sub_cmd_stamped_ =
           node_->create_subscription<geometry_msgs::msg::TwistStamped>(
               topic_name_cmd_, 10,
-              std::bind(&StageNode::Vehicle::callback_cmd_stamped, this, _1));
+              std::bind(&Vehicle::callback_cmd_stamped, this, _1));
         RCLCPP_INFO(node_->get_logger(), "%s is using stamped velocity commands.", name().c_str());
       } else {
         sub_cmd_ =
             node_->create_subscription<geometry_msgs::msg::Twist>(
                 topic_name_cmd_, 10,
-                std::bind(&StageNode::Vehicle::callback_cmd, this, _1));
+                std::bind(&Vehicle::callback_cmd, this, _1));
         RCLCPP_INFO(node_->get_logger(), "%s is using unstamped velocity commands.", name().c_str());
       }
   }
@@ -119,7 +119,7 @@ void StageNode::Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
   initialized_ = true;
 }
 
-void StageNode::Vehicle::publish_msg()
+void Vehicle::publish_msg()
 {
   // Guard
   if (!initialized_)
@@ -129,7 +129,7 @@ void StageNode::Vehicle::publish_msg()
   // Translate into ROS message format and publish
   msg_odom_.pose.pose.position.x = positionmodel->est_pose.x;
   msg_odom_.pose.pose.position.y = positionmodel->est_pose.y;
-  msg_odom_.pose.pose.orientation = createQuaternionMsgFromYaw(positionmodel->est_pose.a);
+  msg_odom_.pose.pose.orientation = StageNode::createQuaternionMsgFromYaw(positionmodel->est_pose.a);
   Stg::Velocity v = positionmodel->GetVelocity();
   msg_odom_.twist.twist.linear.x = v.x;
   msg_odom_.twist.twist.linear.y = v.y;
@@ -185,7 +185,7 @@ void StageNode::Vehicle::publish_msg()
   pub_ground_truth_->publish(ground_truth_msg);
   time_last_pose_update_ = node_->sim_time_;
 }
-void StageNode::Vehicle::publish_tf()
+void Vehicle::publish_tf()
 {
 
   // broadcast odometry transform
@@ -197,13 +197,13 @@ void StageNode::Vehicle::publish_tf()
   tf2::Transform transform(quaternion,
                            tf2::Vector3(msg_odom_.pose.pose.position.x, msg_odom_.pose.pose.position.y, 0.0));
   tf_broadcaster_->sendTransform(
-      create_transform_stamped(
+      StageNode::create_transform_stamped(
           transform, node_->sim_time_,
           frame_id_odom_,
           frame_id_base_link_));
 }
 
-void StageNode::Vehicle::check_watchdog_timeout()
+void Vehicle::check_watchdog_timeout()
 {
 
   if ((timeout_cmd_ != rclcpp::Time(0, 0)) && (node_->sim_time_ > timeout_cmd_))
@@ -217,7 +217,7 @@ void StageNode::Vehicle::check_watchdog_timeout()
     }
   }
 }
-void StageNode::Vehicle::callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg)
+void Vehicle::callback_cmd(const geometry_msgs::msg::Twist::SharedPtr msg)
 {
   std::scoped_lock lock(node_->msg_lock);
   this->positionmodel->SetSpeed(
@@ -228,7 +228,7 @@ void StageNode::Vehicle::callback_cmd(const geometry_msgs::msg::Twist::SharedPtr
   timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
 }
 
-void StageNode::Vehicle::callback_cmd_stamped(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
+void Vehicle::callback_cmd_stamped(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
 {
   std::scoped_lock lock(node_->msg_lock);
   this->positionmodel->SetSpeed(
@@ -239,7 +239,7 @@ void StageNode::Vehicle::callback_cmd_stamped(const geometry_msgs::msg::TwistSta
   timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
 }
 
-void StageNode::Vehicle::callback_drive(const ackermann_msgs::msg::AckermannDrive::SharedPtr msg)
+void Vehicle::callback_drive(const ackermann_msgs::msg::AckermannDrive::SharedPtr msg)
 {
   std::scoped_lock lock(node_->msg_lock);
   this->positionmodel->SetSpeed(
@@ -250,7 +250,7 @@ void StageNode::Vehicle::callback_drive(const ackermann_msgs::msg::AckermannDriv
   timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
 }
 
-void StageNode::Vehicle::callback_drive_stamped(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg)
+void Vehicle::callback_drive_stamped(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg)
 {
   std::scoped_lock lock(node_->msg_lock);
   this->positionmodel->SetSpeed(
