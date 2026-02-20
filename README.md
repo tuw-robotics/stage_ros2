@@ -1,8 +1,8 @@
 # stage_ros2
-This is a ROS2 bridge for the robot simulator [Stage](https://github.com/rtv/Stage).
+This is a ROS2 bridge for the robot simulator [Stage](https://]github.com/tuw-robotics/Stage).
 It supports multiple robots with one or multiple tf-trees.
 
-* [install](res/install.md)
+* [install](res/install.md) <br>We suggest to use this pkg together with our modified [Stage](https://]github.com/tuw-robotics/Stage)
 * [run demos](res/demos.md)
 * [handling multiple vehickes](res/multi_robot_setup.md)
 

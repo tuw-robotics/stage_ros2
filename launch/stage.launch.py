@@ -53,6 +53,7 @@ def generate_launch_description():
             this_directory,
             'world',
             context.launch_configurations['world'] + '.world')
+        print("world_file: %s" % file)
         return [SetLaunchConfiguration('world_file', file)]
 
     stage_world_configuration_arg = OpaqueFunction(function=stage_world_configuration)

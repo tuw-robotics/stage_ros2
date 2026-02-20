@@ -1,0 +1,102 @@
+# cave.world
+# simple cave environment with a pioneer robot based on the basic world file examples of 
+# Richard Vaughan Richard Vaughan, Andrew Howard, Luis Riazuelo
+# Authors: Markus Bader
+
+include "include/robots.inc"
+
+# set the resolution of the underlying raytrace model in meters
+resolution 0.02
+
+# simulation timestep in milliseconds
+interval_sim 100  
+
+define floorplan model
+(
+  # sombre, sensible, artistic
+  color "gray30"
+
+  # most maps will need a bounding box
+  boundary 1
+
+  gui_nose 0
+  gui_grid 0
+
+  gui_outline 0
+  gripper_return 0
+  fiducial_return 0
+  laser_return 1
+)
+
+# configure the GUI window
+window
+(
+  size [ 635.000 666.000 ] # in pixels
+  scale 36.995   # pixels per meter
+  center [ -0.040  -0.274 ]
+  rotate [ 0  0 ]
+
+  show_data 1              # 1=on 0=off
+)
+
+# load an environment bitmap
+floorplan
+( 
+  name "cave"
+  size [16.000 16.000 0.800]
+  pose [0 0 0 0]
+  bitmap "bitmaps/cave.png"
+  gui_move 0
+)
+
+# throw in a green block
+model( 
+  name "green_block"
+  size [0.5 0.5 0.5]
+  pose [ 5 4 00 180.000 ] 
+  color "green"
+  gui_nose 0
+)
+
+# throw in a green block taged block in yellow
+model( 
+  name "f10"
+  fiducial_return 10
+  size [0.2 0.2 0.2]
+  pose [ -1.1 -4.2 0.5 0 ] 
+  color "yellow"
+)
+
+model( 
+  name "f11"
+  fiducial_return 11
+  size [0.2 0.2 0.2]
+  pose [ -8 -2 0.5 0 ] 
+  color "yellow"
+)
+
+model( 
+  name "f12"
+  fiducial_return 12
+  size [0.2 0.2 0.2]
+  pose [ -4 2 0.5 0 ] 
+  color "yellow"
+)
+
+model( 
+  name "f13"
+  fiducial_return 13
+  size [0.2 0.2 0.2]
+  pose [ 1 3.8 0.5 0 ] 
+  color "yellow"
+)
+
+
+
+pioneer2dx_with_laser_and_fiducial 
+(
+  # can refer to the robot by this name
+  name "r0"
+  color "blue" 
+  pose [ -7 -7 0 45 ] 
+)

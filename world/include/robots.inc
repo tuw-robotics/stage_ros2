@@ -64,6 +64,39 @@ define pioneer2dx_with_laser pioneer2dx_no_sonar
   )
 )
 
+define pioneer2dx_with_laser_and_fiducial pioneer2dx_no_sonar 
+(
+  # can refer to the robot by this name
+  hokuyolaser(pose [ 0.15 0 0 0 ])
+  model
+  (
+    # generic model properties
+    pose [ -0.1 0.0 0 0.0 ]
+    size [ 0.2 0.2 0.05 ]  
+    color "DimGray"
+  )
+
+  fiducial
+  (
+    # fiducial properties
+    range_min 0.0
+    range_max 8.0
+    range_max_id 5.0
+    fov 270
+    ignore_zloc 1
+
+    pose [ -0.1 0.0 0.1 0.0 ]
+    model
+    (
+      # generic model properties
+      pose [ 0.0 0.0 0 -0.05 ]
+      size [ 0.05 0.05 0.1]  
+      color "RoyalBlue"
+    )
+    alwayson 1 
+  )
+)
+
 define pioneer2dx_with_laser_and_camera pioneer2dx_with_laser 
 (
   # can refer to the robot by this name
