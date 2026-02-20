@@ -8,12 +8,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
-#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <ackermann_msgs/msg/ackermann_drive.hpp>
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
-#include <sensor_msgs/msg/laser_scan.hpp>
-#include <sensor_msgs/msg/image.hpp>
-#include <sensor_msgs/msg/camera_info.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <stage_ros2/transform_broadcaster.h>
 #include <stage_ros2/static_transform_broadcaster.h>

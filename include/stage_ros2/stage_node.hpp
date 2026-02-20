@@ -1,30 +1,13 @@
 #ifndef STAGE_ROS2_PKG__STAGE_ROS_HPP_
 #define STAGE_ROS2_PKG__STAGE_ROS_HPP_
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <signal.h>
 #include <mutex>
 
-// roscpp
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/empty.hpp>
-#include <geometry_msgs/msg/twist_stamped.hpp>
-#include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
-#include <sensor_msgs/msg/laser_scan.hpp>
-#include <sensor_msgs/msg/image.hpp>
-#include <sensor_msgs/image_encodings.hpp>
-#include <sensor_msgs/msg/camera_info.hpp>
-#include <nav_msgs/msg/odometry.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
 #include <stage_ros2/transform_broadcaster.h>
-#include <stage_ros2/static_transform_broadcaster.h>
-#include <tf2/transform_datatypes.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2/LinearMath/Transform.h>
 
 // libstage
 #include <stage.hh>

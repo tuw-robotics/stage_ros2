@@ -1,8 +1,9 @@
-#include <stage_ros2/stage_node.hpp>
+#include "stage_ros2/camera.hpp"
+#include "stage_ros2/stage_node.hpp"
 
-#include <chrono>
 #include <memory>
-#include <filesystem>
+
+#include <sensor_msgs/image_encodings.hpp>
 
 namespace stage_ros2 {
 
