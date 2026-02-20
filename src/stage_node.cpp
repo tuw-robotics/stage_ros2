@@ -4,6 +4,8 @@
 #include <memory>
 #include <filesystem>
 
+namespace stage_ros2 {
+
 StageNode::StageNode(rclcpp::NodeOptions options)
 : Node("stage_ros2", options), base_watchdog_timeout_(0, 0)
 {
@@ -166,7 +168,7 @@ int StageNode::callback_init_stage_model(Stg::Model * mod, StageNode * node)
     for (std::shared_ptr<Vehicle> vehcile: node->vehicles_) {
       if (parent == vehcile->positionmodel) {
         auto camera =
-          std::make_shared<::Camera>(
+          std::make_shared<Camera>(
           vehcile->cameras_.size() + 1,
           dynamic_cast<Stg::ModelCamera *>(mod), vehcile);
         vehcile->cameras_.push_back(camera);
@@ -312,3 +314,5 @@ geometry_msgs::msg::Quaternion StageNode::createQuaternionMsgFromYaw(double yaw)
   q.setRPY(0, 0, yaw);
   return tf2::toMsg(q);
 }
+
+}  // namespace stage_ros2

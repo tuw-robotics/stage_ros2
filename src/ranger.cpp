@@ -4,6 +4,8 @@
 #include <memory>
 #include <filesystem>
 
+namespace stage_ros2 {
+
 #define TOPIC_LASER "base_scan"
 #define FRAME_LASER "laser"
 
@@ -110,3 +112,5 @@ void Ranger::publish_tf()
     vehicle->tf_broadcaster_->sendTransform(*transform);
   }
 }
+
+}  // namespace stage_ros2

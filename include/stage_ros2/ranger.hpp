@@ -11,6 +11,8 @@
 // libstage
 #include <stage.hh>
 
+namespace stage_ros2 {
+
 // Forward declaration to avoid circular dependency
 class Vehicle;
 
@@ -37,5 +39,7 @@ public:
   void publish_msg();
   void publish_tf();
 };
+
+}  // namespace stage_ros2
 
 #endif  // STAGE_ROS2_PKG__RANGER_HPP_

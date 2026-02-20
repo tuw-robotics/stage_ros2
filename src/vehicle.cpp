@@ -4,6 +4,8 @@
 #include <memory>
 #include <filesystem>
 
+namespace stage_ros2 {
+
 #define TOPIC_TF "tf"
 #define TOPIC_TF_STATIC "tf_static"
 #define TOPIC_ODOM "odom"
@@ -260,3 +262,5 @@ void Vehicle::callback_drive_stamped(const ackermann_msgs::msg::AckermannDriveSt
   time_last_cmd_received_ = node_->sim_time_;
   timeout_cmd_ = time_last_cmd_received_ + node_->base_watchdog_timeout_;
 }
+
+}  // namespace stage_ros2

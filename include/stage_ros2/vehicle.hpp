@@ -24,6 +24,8 @@
 #include "stage_ros2/ranger.hpp"
 #include "stage_ros2/camera.hpp"
 
+namespace stage_ros2 {
+
 // Forward declaration to avoid circular dependency
 class StageNode;
 
@@ -94,5 +96,7 @@ public:
   std::shared_ptr<stage_ros2::StaticTransformBroadcaster> tf_static_broadcaster_;
   std::shared_ptr<stage_ros2::TransformBroadcaster> tf_broadcaster_;
 };
+
+}  // namespace stage_ros2
 
 #endif  // STAGE_ROS2_PKG__VEHICLE_HPP_

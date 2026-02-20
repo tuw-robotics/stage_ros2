@@ -12,6 +12,8 @@
 // libstage
 #include <stage.hh>
 
+namespace stage_ros2 {
+
 // Forward declaration to avoid circular dependency
 class Vehicle;
 
@@ -46,5 +48,7 @@ public:
   std::string topic_name_camera_info;
   std::string frame_id;
 };
+
+}  // namespace stage_ros2
 
 #endif  // STAGE_ROS2_PKG__CAMERA_HPP_

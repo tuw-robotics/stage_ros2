@@ -4,6 +4,8 @@
 #include <memory>
 #include <filesystem>
 
+namespace stage_ros2 {
+
 #define TOPIC_IMAGE "image"
 #define TOPIC_DEPTH "depth"
 #define TOPIC_CAMERA_INFO "camera_info"
@@ -250,3 +252,5 @@ void Camera::publish_tf()
     vehicle->tf_broadcaster_->sendTransform(*transform);
   }
 }
+
+}  // namespace stage_ros2

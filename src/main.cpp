@@ -5,7 +5,7 @@
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<StageNode>(rclcpp::NodeOptions());
+  auto node = std::make_shared<stage_ros2::StageNode>(rclcpp::NodeOptions());
   node->init(argc - 1, argv);
   if (node->SubscribeModels() != 0) {exit(-1);}
   std::thread t = std::thread([&node]() {rclcpp::spin(node);});

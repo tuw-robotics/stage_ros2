@@ -34,6 +34,8 @@
 
 
 
+namespace stage_ros2 {
+
 // Our node
 class StageNode : public rclcpp::Node
 {
@@ -123,5 +125,7 @@ public:
   static geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
 
 };
+
+}  // namespace stage_ros2
 
 #endif // STAGE_ROS2_PKG__STAGE_ROS_HPP_
