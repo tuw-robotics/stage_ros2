@@ -11,17 +11,17 @@
 
 using std::placeholders::_1;
 
-Vehicle::Camera::Camera(
+Camera::Camera(
   unsigned int id, Stg::ModelCamera * m,
   std::shared_ptr<Vehicle> & v)
 : initialized_(false), id_(id), model(m), vehicle(v) {}
 
-unsigned int Vehicle::Camera::id() const
+unsigned int Camera::id() const
 {
   return id_;
 }
 
-void Vehicle::Camera::init(bool add_id_to_topic)
+void Camera::init(bool add_id_to_topic)
 {
   if(initialized_) return;
   model->Subscribe();
@@ -42,7 +42,7 @@ void Vehicle::Camera::init(bool add_id_to_topic)
   pub_depth = vehicle->node()->create_publisher<sensor_msgs::msg::Image>(topic_name_depth, 10);
   initialized_ = true;
 }
-bool Vehicle::Camera::prepare_msg_image()
+bool Camera::prepare_msg_image()
 {
   if (msg_image) {
     return true;
@@ -62,7 +62,7 @@ bool Vehicle::Camera::prepare_msg_image()
 
   return true;
 }
-bool Vehicle::Camera::prepare_msg_depth()
+bool Camera::prepare_msg_depth()
 {
   if (msg_depth) {
     return true;
@@ -83,7 +83,7 @@ bool Vehicle::Camera::prepare_msg_depth()
   msg_depth->data.resize(len * sz);
   return true;
 }
-bool Vehicle::Camera::prepare_msg_camera()
+bool Camera::prepare_msg_camera()
 {
 
   if (msg_camera) {
@@ -130,14 +130,14 @@ bool Vehicle::Camera::prepare_msg_camera()
   return true;
 }
 
-bool Vehicle::Camera::prepare_msg()
+bool Camera::prepare_msg()
 {
   if (!prepare_msg_image()) {return false;}
   if (!prepare_msg_depth()) {return false;}
   return true;
 }
 
-void Vehicle::Camera::publish_msg()
+void Camera::publish_msg()
 {
   // Guard 
   if(!initialized_) return; 
@@ -215,7 +215,7 @@ void Vehicle::Camera::publish_msg()
     pub_camera->publish(*msg_camera);
   }
 }
-bool Vehicle::Camera::prepare_tf()
+bool Camera::prepare_tf()
 {
   if (transform) {return true;}
 
@@ -239,7 +239,7 @@ bool Vehicle::Camera::prepare_tf()
   }
   return true;
 }
-void Vehicle::Camera::publish_tf()
+void Camera::publish_tf()
 {
   if (prepare_tf()) {
 

@@ -1,0 +1,41 @@
+#ifndef STAGE_ROS2_PKG__RANGER_HPP_
+#define STAGE_ROS2_PKG__RANGER_HPP_
+
+#include <string>
+#include <memory>
+
+#include <rclcpp/rclcpp.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
+
+// libstage
+#include <stage.hh>
+
+// Forward declaration to avoid circular dependency
+class Vehicle;
+
+class Ranger
+{
+  bool initialized_;
+  size_t id_;
+  Stg::ModelRanger * model;
+  std::shared_ptr<Vehicle> vehicle;
+  std::string topic_name;
+  std::string frame_base;
+  std::string frame_id;
+  geometry_msgs::msg::TransformStamped::SharedPtr transform;
+  rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr pub;
+  sensor_msgs::msg::LaserScan::SharedPtr msg;
+  bool prepare_msg();
+  bool prepare_tf();
+
+public:
+  Ranger(
+    unsigned int id, Stg::ModelRanger * m, std::shared_ptr<Vehicle> & vehicle);
+  void init(bool add_id_to_topic);
+  unsigned int id() const;
+  void publish_msg();
+  void publish_tf();
+};
+
+#endif  // STAGE_ROS2_PKG__RANGER_HPP_

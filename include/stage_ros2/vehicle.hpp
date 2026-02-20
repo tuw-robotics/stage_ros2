@@ -21,67 +21,15 @@
 // libstage
 #include <stage.hh>
 
+#include "stage_ros2/ranger.hpp"
+#include "stage_ros2/camera.hpp"
+
 // Forward declaration to avoid circular dependency
 class StageNode;
 
 class Vehicle
 {
 public:
-  class Ranger
-  {
-    bool initialized_;
-    size_t id_;
-    Stg::ModelRanger * model;
-    std::shared_ptr<Vehicle> vehicle;
-    std::string topic_name;
-    std::string frame_base;
-    std::string frame_id;
-    geometry_msgs::msg::TransformStamped::SharedPtr transform;
-    rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr pub;
-    sensor_msgs::msg::LaserScan::SharedPtr msg;
-    bool prepare_msg();
-    bool prepare_tf();
-
-public:
-    Ranger(
-      unsigned int id, Stg::ModelRanger * m, std::shared_ptr<Vehicle> & vehicle);
-    void init(bool add_id_to_topic);
-    unsigned int id() const;
-    void publish_msg();
-    void publish_tf();
-  };
-
-  class Camera
-  {
-    bool initialized_;
-    size_t id_;
-    Stg::ModelCamera * model;
-    std::shared_ptr<Vehicle> vehicle;
-    geometry_msgs::msg::TransformStamped::SharedPtr transform;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_image;             // multiple images
-    sensor_msgs::msg::Image::SharedPtr msg_image;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_depth;             // multiple depths
-    sensor_msgs::msg::Image::SharedPtr msg_depth;
-    rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr pub_camera;       // multiple cameras
-    sensor_msgs::msg::CameraInfo::SharedPtr msg_camera;
-    bool prepare_msg();
-    bool prepare_msg_image();
-    bool prepare_msg_depth();
-    bool prepare_msg_camera();
-    bool prepare_tf();
-
-public:
-    Camera(
-      unsigned int id, Stg::ModelCamera * m, std::shared_ptr<Vehicle> & vehicle);
-    void init(bool add_id_to_topic);
-    unsigned int id() const;
-    void publish_msg();
-    void publish_tf();
-    std::string topic_name_image;
-    std::string topic_name_depth;
-    std::string topic_name_camera_info;
-    std::string frame_id;
-  };
 
 private:
   bool initialized_;
@@ -95,8 +43,6 @@ private:
   // Last time we saved global position (for velocity calculation).
   rclcpp::Time time_last_pose_update_;
 
-  std::string topic_name_space_;
-  std::string frame_name_space_;
   std::string topic_name_cmd_;
   std::string topic_name_drive_;
 
@@ -106,11 +52,13 @@ private:
   std::string topic_name_ground_truth_;
   std::string frame_id_odom_;
   std::string frame_id_world_;
-  std::string frame_id_base_link_;
   nav_msgs::msg::Odometry msg_odom_;
   std::shared_ptr<Stg::Pose> global_pose_;
 
 public:
+  std::string topic_name_space_;
+  std::string frame_name_space_;
+  std::string frame_id_base_link_;
   Vehicle(size_t id, const Stg::Pose & pose, const std::string & name, StageNode * node);
 
   void soft_reset();

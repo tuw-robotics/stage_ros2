@@ -154,7 +154,7 @@ int StageNode::callback_init_stage_model(Stg::Model * mod, StageNode * node)
     for (std::shared_ptr<Vehicle> vehcile: node->vehicles_) {
       if (parent == vehcile->positionmodel) {
         auto ranger =
-          std::make_shared<Vehicle::Ranger>(
+          std::make_shared<Ranger>(
           vehcile->rangers_.size() + 1,
           dynamic_cast<Stg::ModelRanger *>(mod), vehcile);
         vehcile->rangers_.push_back(ranger);
@@ -166,7 +166,7 @@ int StageNode::callback_init_stage_model(Stg::Model * mod, StageNode * node)
     for (std::shared_ptr<Vehicle> vehcile: node->vehicles_) {
       if (parent == vehcile->positionmodel) {
         auto camera =
-          std::make_shared<Vehicle::Camera>(
+          std::make_shared<::Camera>(
           vehcile->cameras_.size() + 1,
           dynamic_cast<Stg::ModelCamera *>(mod), vehcile);
         vehcile->cameras_.push_back(camera);

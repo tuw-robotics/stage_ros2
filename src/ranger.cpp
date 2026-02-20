@@ -9,16 +9,16 @@
 
 using std::placeholders::_1;
 
-Vehicle::Ranger::Ranger(
+Ranger::Ranger(
   unsigned int id, Stg::ModelRanger * m,
   std::shared_ptr<Vehicle> & v)
 : initialized_(false), id_(id), model(m), vehicle(v) {}
 
-unsigned int Vehicle::Ranger::id() const
+unsigned int Ranger::id() const
 {
   return id_;
 }
-void Vehicle::Ranger::init(bool add_id_to_topic)
+void Ranger::init(bool add_id_to_topic)
 {
   if(initialized_) return; 
   model->Subscribe();
@@ -33,7 +33,7 @@ void Vehicle::Ranger::init(bool add_id_to_topic)
   initialized_ = true;
 }
 
-bool Vehicle::Ranger::prepare_msg()
+bool Ranger::prepare_msg()
 {
   if (msg) {return true;}
   if (model->GetSensors().size() > 1) {
@@ -55,7 +55,7 @@ bool Vehicle::Ranger::prepare_msg()
   return true;
 }
 
-bool Vehicle::Ranger::prepare_tf()
+bool Ranger::prepare_tf()
 {
 
   transform = std::make_shared<geometry_msgs::msg::TransformStamped>();
@@ -76,7 +76,7 @@ bool Vehicle::Ranger::prepare_tf()
   return true;
 }
 
-void Vehicle::Ranger::publish_msg()
+void Ranger::publish_msg()
 {
   // Guard 
   if(!initialized_) return; 
@@ -99,7 +99,7 @@ void Vehicle::Ranger::publish_msg()
   }
 }
 
-void Vehicle::Ranger::publish_tf()
+void Ranger::publish_tf()
 {
   if (prepare_tf()) {
 
