@@ -18,6 +18,7 @@
 #include <stage.hh>
 
 #include "stage_ros2/ranger.hpp"
+#include "stage_ros2/fiducial_detector.hpp"
 #include "stage_ros2/camera.hpp"
 
 namespace stage_ros2 {
@@ -79,6 +80,7 @@ public:
   // stage related models
   Stg::ModelPosition * positionmodel;               // one position
   std::vector<std::shared_ptr<Ranger>> rangers_;     // multiple rangers per position
+  std::vector<std::shared_ptr<FiducialDetector>> fiducial_detectors_;     // multiple fiducial detectors  per position
   std::vector<std::shared_ptr<Camera>> cameras_;      // multiple cameras per position
 
   // ros publishers

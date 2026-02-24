@@ -63,7 +63,7 @@ model(
   name "f10"
   fiducial_return 10
   size [0.2 0.2 0.2]
-  pose [ -1.1 -4.2 0.5 0 ] 
+  pose [ -1.1 -4.2 0.5 45 ] 
   color "yellow"
 )
 

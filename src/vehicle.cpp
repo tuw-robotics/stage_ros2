@@ -108,12 +108,17 @@ void Vehicle::init(bool use_topic_prefixes, bool use_one_tf_tree)
   }
   positionmodel->Subscribe();
 
-  for (std::shared_ptr<Ranger> ranger : rangers_)
+  for (auto &ranger : rangers_)
   {
     ranger->init(rangers_.size() > 1);
   }
 
-  for (std::shared_ptr<Camera> camera : cameras_)
+  for (auto &detector : fiducial_detectors_)
+  {
+    detector->init(fiducial_detectors_.size() > 1);
+  }
+
+  for (auto &camera : cameras_)
   {
     camera->init(cameras_.size() > 1);
   }

@@ -165,6 +165,18 @@ int StageNode::callback_init_stage_model(Stg::Model * mod, StageNode * node)
       }
     }
   }
+  if (dynamic_cast<Stg::ModelFiducial *>(mod)) {
+    Stg::ModelPosition * parent = dynamic_cast<Stg::ModelPosition *>(mod->Parent());
+    for (std::shared_ptr<Vehicle> vehcile: node->vehicles_) {
+      if (parent == vehcile->positionmodel) {
+        auto fiducial_detector =
+          std::make_shared<FiducialDetector>(
+          vehcile->fiducial_detectors_.size() + 1,
+          dynamic_cast<Stg::ModelFiducial *>(mod), vehcile);
+        vehcile->fiducial_detectors_.push_back(fiducial_detector);
+      }
+    }
+  }
   if (dynamic_cast<Stg::ModelCamera *>(mod)) {
     Stg::ModelPosition * parent = dynamic_cast<Stg::ModelPosition *>(mod->Parent());
     for (std::shared_ptr<Vehicle> vehcile: node->vehicles_) {
@@ -219,6 +231,13 @@ int StageNode::callback_update_stage_world(Stg::World * world, StageNode * node)
     for (auto camera: vehicle->cameras_) {
       camera->publish_msg();
       camera->publish_tf();
+    }
+
+
+    // loop on the fiducials sensors for the current robot
+    for (auto detector: vehicle->fiducial_detectors_) {
+      detector->publish_msg();
+      detector->publish_tf();
     }
   }
   rosgraph_msgs::msg::Clock clock_msg;
@@ -315,6 +334,16 @@ geometry_msgs::msg::Quaternion StageNode::createQuaternionMsgFromYaw(double yaw)
   tf2::Quaternion q;
   q.setRPY(0, 0, yaw);
   return tf2::toMsg(q);
+}
+
+geometry_msgs::msg::Pose StageNode::createGeometryPose(const Stg::Pose &src)
+{
+  geometry_msgs::msg::Pose des;
+  des.position.x = src.x;
+  des.position.y = src.y;
+  des.position.z = src.z;
+  des.orientation = createQuaternionMsgFromYaw(src.a);
+  return des;
 }
 
 }  // namespace stage_ros2

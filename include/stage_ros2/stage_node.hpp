@@ -105,7 +105,8 @@ public:
     const tf2::Transform & in,
     const rclcpp::Time & timestamp, const std::string & frame_id,
     const std::string & child_frame_id);
-  static geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
+    static geometry_msgs::msg::Quaternion createQuaternionMsgFromYaw(double yaw);
+    static geometry_msgs::msg::Pose createGeometryPose(const Stg::Pose &src);
 
 };
 
