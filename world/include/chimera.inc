@@ -29,7 +29,8 @@ define lidar ranger # This is the LIDAR
 )
 
 define Chimera position
-(   drive "car"
+(   
+    drive "car"
     color "white"
     stereo( pose [0.220 0.060 0.110 0.000] color "red" pantilt [ 0 0])  # Left camera offset z 0.48 fov 54 110
     logi_camera( pose [0.230 0.000 0.300 0.000 0] color "black" pantilt [ 0 75 ])
