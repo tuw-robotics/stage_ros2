@@ -7,7 +7,7 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
 #include <stage_ros2/transform_broadcaster.h>
-#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Transform.hpp>
 
 // libstage
 #include <stage.hh>

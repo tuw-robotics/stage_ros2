@@ -33,9 +33,19 @@ include_directories(
 add_library(stage_node SHARED
             src/stage_node.cpp src/vehicle.cpp src/ranger.cpp src/fiducial_detector.cpp src/camera.cpp)
 target_compile_definitions(stage_node PRIVATE "STAGE_ROS2_PACKAGE_DLL")
-ament_target_dependencies(stage_node rclcpp rclcpp_components
-sensor_msgs geometry_msgs marker_msgs nav_msgs std_msgs tf2_ros std_srvs tf2_geometry_msgs ackermann_msgs)
-
+target_link_libraries(stage_node PUBLIC
+  rclcpp::rclcpp
+  rclcpp_components::component
+  tf2_ros::tf2_ros
+  ${sensor_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${marker_msgs_TARGETS}
+  ${nav_msgs_TARGETS}
+  ${std_msgs_TARGETS}
+  ${std_srvs_TARGETS}
+  ${ackermann_msgs_TARGETS}
+  ${tf2_geometry_msgs_TARGETS}
+)
 
 # This package installs libraries without exporting them.
 # Export the library path to ensure that the installed libraries are available.
@@ -49,8 +59,7 @@ target_include_directories(stage_ros2 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 target_compile_features(stage_ros2 PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
-target_link_libraries(stage_ros2 stage_node ${STAGE_LIBRARIES})
-ament_target_dependencies(stage_ros2 rclcpp)
+target_link_libraries(stage_ros2 PUBLIC rclcpp::rclcpp stage_node ${STAGE_LIBRARIES})
 
 install(
   DIRECTORY

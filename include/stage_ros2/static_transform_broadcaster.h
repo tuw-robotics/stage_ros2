@@ -34,7 +34,7 @@
 #ifndef STAGE_ROS2_PKG__CUSTOM_TF_BROADCASTER_HPP_
 #define STAGE_ROS2_PKG__CUSTOM_TF_BROADCASTER_HPP_
 
-#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.hpp>
 
 namespace stage_ros2
 {

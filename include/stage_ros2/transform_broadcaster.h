@@ -34,7 +34,7 @@
 #ifndef STAGE_ROS2__TRANSFORM_BROADCASTER_H_
 #define STAGE_ROS2__TRANSFORM_BROADCASTER_H_
 
-#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.hpp>
 
 namespace stage_ros2
 {
